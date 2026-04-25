@@ -46,6 +46,8 @@ function WalletButton() {
     );
   }
 
+  if (isConnected) return null;
+
   return (
     <button
       onClick={connect}

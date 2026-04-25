@@ -115,7 +115,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     setIsConnecting(true);
     try {
-      const { accounts } = await wallet.connect();
+      const result = await wallet.connect();
+      const accounts = (result as any)?.accounts || [];
       if (accounts.length === 0) throw new Error('No accounts returned');
       setPublicKey(accounts[0].address);
       setWalletName(wallet.name);
