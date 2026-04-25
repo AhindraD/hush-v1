@@ -115,9 +115,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     setIsConnecting(true);
     try {
-      const result = await wallet.connect();
-      const accounts = (result as any)?.accounts || [];
-      if (accounts.length === 0) throw new Error('No accounts returned');
+      let result = await wallet.connect();
+      let accounts = (result as any)?.accounts || [];
+
+      // Try signIn if connect returned nothing (Modern Wallet Standard)
+      if (accounts.length === 0 && (wallet as any).signIn) {
+        try {
+          result = await (wallet as any).signIn();
+          accounts = (result as any)?.accounts || [];
+        } catch (signInErr) {
+          console.warn('Wallet signIn failed after empty connect:', signInErr);
+        }
+      }
+
+      // Fallback: Some wallets store publicKey directly on the object after connect
+      if (accounts.length === 0 && (wallet as any).publicKey) {
+        accounts = [{
+          address:   (wallet as any).publicKey.toString(),
+          publicKey: (wallet as any).publicKey.toBytes ? (wallet as any).publicKey.toBytes() : new Uint8Array(0),
+        }];
+      }
+
+      if (accounts.length === 0) {
+        console.error('Wallet connected but returned no accounts:', result);
+        throw new Error('No accounts returned from wallet');
+      }
+
       setPublicKey(accounts[0].address);
       setWalletName(wallet.name);
       setWalletRef(wallet);
