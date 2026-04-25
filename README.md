@@ -1,5 +1,6 @@
 # HUSH — Silent Philanthropy. High-Yield. Total Privacy.
 
+
 ![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-9945FF?style=flat-square&logo=solana)
 ![Anchor 0.31](https://img.shields.io/badge/Anchor-0.31-blue?style=flat-square)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)
@@ -8,6 +9,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
+<img width="1904" height="829" alt="image" src="https://github.com/user-attachments/assets/e0d7cfde-9bbb-44cb-b10f-ab440e48fd59" />
 
 ## Overview
 
