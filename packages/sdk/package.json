@@ -1,0 +1,15 @@
+{
+  "name": "@hush/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.95.8",
+    "@solana/spl-token": "^0.4.9",
+    "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.5",
+    "tweetnacl": "^1.0.3",
+    "bs58": "^6.0.0"
+  }
+}
