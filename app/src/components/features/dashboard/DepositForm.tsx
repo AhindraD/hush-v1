@@ -51,8 +51,8 @@ export function DepositForm({ accountId }: DepositFormProps) {
       {/* Success state */}
       {mutation.isSuccess && mutation.data && (
         <SuccessState
-          txHash={mutation.data.txHash}
-          stealthPubkey={mutation.data.stealthPubkey}
+          txHash={mutation.data.deposit.txHash}
+          stealthPubkey={mutation.data.deposit.stealthPubkey}
           amount={amount}
           onReset={() => { mutation.reset(); setAmount(''); }}
         />

@@ -24,6 +24,7 @@ import {
   createSolanaClient,
   type KeyPairSigner,
 } from 'gill';
+import { Connection } from '@solana/web3.js';
 
 // ── Wallet Standard shim types ────────────────────────────────────────────────
 // All modern Solana wallets (Phantom, Solflare, Backpack) expose a standard
@@ -73,6 +74,9 @@ export interface WalletContextValue {
   isConnecting: boolean;
   /** gill rpc client — use for all on-chain reads */
   rpc:          typeof solanaClient.rpc;
+  /** Legacy web3.js connection */
+  connection:   Connection | null;
+  sendTransaction: ((tx: any, conn: any) => Promise<string>) | null;
   /** Wallet sign function for legacy web3.js transactions (Anchor compat) */
   signTransaction:     ((tx: unknown) => Promise<unknown>) | null;
   signAllTransactions: ((txs: unknown[]) => Promise<unknown[]>) | null;
@@ -152,6 +156,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isConnected:  publicKey !== null,
       isConnecting,
       rpc:          solanaClient.rpc,
+      connection:   new Connection(RPC_URL, 'confirmed'),
+      sendTransaction: async (tx: any, conn: any) => {
+          if (!walletRef?.signTransaction) throw new Error('Wallet cannot sign');
+          const signed = await walletRef.signTransaction(tx);
+          return (conn as Connection).sendRawTransaction((signed as any).serialize());
+      },
       signTransaction:     walletRef?.signTransaction     ? (tx) => walletRef.signTransaction!(tx) : null,
       signAllTransactions: walletRef?.signAllTransactions ? (txs) => walletRef.signAllTransactions!(txs) : null,
       connect,

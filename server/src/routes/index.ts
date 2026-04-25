@@ -3,7 +3,7 @@ import accountsRouter from './accounts';
 import transactionsRouter from './transactions';
 import complianceRouter from './compliance';
 
-const router = Router();
+const router: Router = Router();
 
 router.use('/accounts', accountsRouter);
 router.use('/accounts', transactionsRouter);

@@ -3,23 +3,20 @@
 /**
  * usePrivateBalance.ts
  *
- * Queries the MagicBlock Private Payments API for the ephemeral rollup
- * (private) USDC balance of a connected wallet address.
- *
- * Uses the real MagicBlock REST API: GET /v1/spl/private-balance
+ * Queries the MagicBlock Ephemeral Rollup for the private USDC balance
+ * of a connected wallet address.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/providers/WalletProvider';
-import { createPrivatePaymentsClient } from '@hush/sdk';
+import { createMagicBlockClient, USDC_MINT_DEVNET } from '@hush/sdk';
 
 export interface PrivateBalanceData {
-  /** Raw balance string from the API (e.g. "1000000" = 1 USDC) */
+  /** Raw balance string (e.g. "1000000" = 1 USDC) */
   rawBalance:    string;
   /** Human-readable USDC amount */
   usdcBalance:   number;
   address:       string;
-  location:      'base' | 'ephemeral';
 }
 
 /**
@@ -34,14 +31,14 @@ export function usePrivateBalance() {
     queryFn:   async () => {
       if (!publicKey) throw new Error('No wallet connected');
 
-      const client = createPrivatePaymentsClient({ cluster: 'devnet' });
-      const data   = await client.getPrivateBalance(publicKey);
+      const client = createMagicBlockClient('devnet');
+      // For PoC, we assume the wallet address itself holds the tokens in ER or we should resolve ATA
+      const balance = await client.getPrivateBalance(publicKey, USDC_MINT_DEVNET.toBase58());
 
       return {
-        rawBalance:  data.balance,
-        usdcBalance: Number(data.balance) / 1_000_000,
-        address:     data.address,
-        location:    data.location,
+        rawBalance:  balance.toString(),
+        usdcBalance: Number(balance) / 1_000_000,
+        address:     publicKey,
       };
     },
     enabled:        isConnected && !!publicKey,

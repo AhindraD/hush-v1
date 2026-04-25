@@ -60,4 +60,4 @@ export const UMBRA_INDEXER_API  = 'https://utxo-indexer.api.umbraprivacy.com';
 export const UMBRA_RELAYER_API  = 'https://relayer.api.umbraprivacy.com';
 
 // ── Misc ──────────────────────────────────────────────────────────────────────
-export const LAMPORTS_PER_USDC = 1_000_000n; // USDC has 6 decimals
+export const LAMPORTS_PER_USDC = BigInt(1_000_000); // USDC has 6 decimals

@@ -12,23 +12,13 @@ export { HushClient, type HushClientOptions, type HushNetwork } from './hush-cli
 export {
   HushUmbraSession,
   type UmbraNetwork,
-  type UmbraDepositResult,
-  type UmbraWithdrawResult,
-  type UmbraUtxoResult,
-  type UmbraClaimResult,
 } from './umbra';
 
-// MagicBlock Private Payments client
+// MagicBlock Ephemeral Rollup client
 export {
-  PrivatePaymentsClient,
-  createPrivatePaymentsClient,
-  deserializeMBTransaction,
+  HushMagicBlockClient,
+  createMagicBlockClient,
   type MBCluster,
-  type MBVisibility,
-  type MBBalance,
-  type MBTxEnvelope,
-  type MBPrivateBalance,
-  type PrivatePaymentsClientOptions,
 } from './magicblock';
 
 // Constants
@@ -39,7 +29,6 @@ export {
   SEED_GRANT,
   USDC_MINT_MAINNET,
   USDC_MINT_DEVNET,
-  MAGICBLOCK_PAYMENTS_API,
   MAGICBLOCK_RPC,
   MAGICBLOCK_VALIDATORS,
   MAGICBLOCK_PROGRAMS,

@@ -215,7 +215,7 @@ const FEATURES = [
     tag:         'More Impact',
     color:       'gold',
   },
-];
+] as const;
 
 function FeaturesSection() {
   return (

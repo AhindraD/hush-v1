@@ -9,7 +9,7 @@ const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'data.db');
 // ---------------------------------------------------------------------------
 // SQLite connection
 // ---------------------------------------------------------------------------
-const sqlite = new Database(DB_PATH);
+const sqlite: Database.Database = new Database(DB_PATH);
 
 // Enable WAL mode for better concurrent read performance
 sqlite.pragma('journal_mode = WAL');

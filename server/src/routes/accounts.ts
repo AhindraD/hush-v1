@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AccountService } from '../services/AccountService';
 
-const router = Router();
+const router: Router = Router();
 const accountService = new AccountService();
 
 // GET /accounts — list all accounts

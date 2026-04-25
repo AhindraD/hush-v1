@@ -7,7 +7,8 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { ViewingKeyService } from '../services/ViewingKeyService';
 
-export const complianceRouter = Router();
+const complianceRouter: Router = Router();
+const viewingKeyService = new ViewingKeyService();
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -61,19 +62,18 @@ complianceRouter.post(
     }
 
     try {
-      const receipt = await ViewingKeyService.generateTaxReceipt(
-        req.params.accountId,
+      const receipt = await viewingKeyService.generateTaxReceipt(
+        parseInt(req.params.accountId),
         parsed.data.viewingKey,
         parsed.data.taxYear,
       );
+      if (!receipt) {
+        res.status(401).json({ error: 'Invalid viewing key or account not found' });
+        return;
+      }
       res.json(receipt);
     } catch (err) {
-      const msg = (err as Error).message;
-      if (msg.includes('not found') || msg.includes('Invalid viewing key')) {
-        res.status(404).json({ error: msg });
-      } else {
-        res.status(500).json({ error: msg });
-      }
+      res.status(500).json({ error: (err as Error).message });
     }
   },
 );
@@ -84,10 +84,12 @@ complianceRouter.get(
   '/:accountId/audit-log',
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const log = await ViewingKeyService.getAuditLog(req.params.accountId);
+      const log = await viewingKeyService.getAuditLogs(parseInt(req.params.accountId));
       res.json({ entries: log });
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
     }
   },
 );
+
+export default complianceRouter;

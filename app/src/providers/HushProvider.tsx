@@ -55,6 +55,7 @@ function HushContextProvider({ children }: { children: React.ReactNode }) {
 
     const wallet: Wallet = {
       publicKey: pubkey,
+      payer:     null as any, // Not used in browser wallet, but required by type
       signTransaction:     (tx) => signTransaction(tx) as any,
       signAllTransactions: (txs) => signAllTransactions(txs) as any,
     };

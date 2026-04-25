@@ -1,14 +1,8 @@
 /**
  * hush-client.ts — High-level HUSH client that composes Umbra + MagicBlock.
- *
- * This is the primary API surface for the HUSH frontend and server. It wires:
- *  - @umbra-privacy/sdk  → stealth ingress (encrypted deposit / UTXO sends)
- *  - MagicBlock PPA REST → private ephemeral rollup transfers + settlement
- *  - @coral-xyz/anchor   → on-chain program interaction
  */
 
-import { Connection, PublicKey } from '@solana/web3.js';
-import * as anchor from '@coral-xyz/anchor';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import {
   HUSH_PROGRAM_ID,
   USDC_MINT_DEVNET,
@@ -17,15 +11,10 @@ import {
 } from './constants';
 import {
   HushUmbraSession,
-  type UmbraDepositResult,
-  type UmbraWithdrawResult,
-  type UmbraUtxoResult,
 } from './umbra';
 import {
-  PrivatePaymentsClient,
-  createPrivatePaymentsClient,
-  type MBTxEnvelope,
-  type MBPrivateBalance,
+  HushMagicBlockClient,
+  createMagicBlockClient,
 } from './magicblock';
 
 export type HushNetwork = 'mainnet' | 'devnet';
@@ -33,52 +22,38 @@ export type HushNetwork = 'mainnet' | 'devnet';
 export interface HushClientOptions {
   network:  HushNetwork;
   rpcUrl?:  string;
-  rpcWsUrl?: string;
-  /** Wallet signer — pass an Umbra-compatible signer (createInMemorySigner or wallet shim) */
-  signer?:  unknown;
+  /** Wallet signer — pass a standard Solana wallet adapter */
+  signer?:  any;
 }
 
 /**
  * HushClient — unified entry point for the HUSH SDK.
- *
- * Compose Umbra (stealth ingress) and MagicBlock (shielded ephemeral rollup)
- * into a single coherent API surface.
- *
- * Usage:
- *   const client = await HushClient.create({ network: 'devnet', signer });
- *   await client.registerUmbra();
- *   const deposit = await client.shieldDeposit(1_000_000n); // 1 USDC
- *   const grant   = await client.adviseGrant(npoAddress, 500_000n, 'Education');
  */
 export class HushClient {
   readonly network:   HushNetwork;
   readonly rpcUrl:    string;
-  readonly rpcWsUrl:  string;
   readonly connection: Connection;
-  readonly mbClient:  PrivatePaymentsClient;
+  readonly mbClient:  HushMagicBlockClient;
 
   private umbraSession?: HushUmbraSession;
 
   private constructor(
-    opts: Required<HushClientOptions> & { rpcWsUrl: string },
-    mbClient: PrivatePaymentsClient,
+    opts: Required<Omit<HushClientOptions, 'signer'>> & { signer?: any },
+    mbClient: HushMagicBlockClient,
   ) {
     this.network    = opts.network;
     this.rpcUrl     = opts.rpcUrl;
-    this.rpcWsUrl   = opts.rpcWsUrl;
     this.connection = new Connection(opts.rpcUrl, 'confirmed');
     this.mbClient   = mbClient;
   }
 
-  /** Create and initialise a HushClient (does NOT auto-register Umbra). */
+  /** Create and initialise a HushClient. */
   static async create(opts: HushClientOptions): Promise<HushClient> {
-    const rpcUrl  = opts.rpcUrl   ?? SOLANA_DEVNET_RPC;
-    const rpcWsUrl = opts.rpcWsUrl ?? rpcUrl.replace('https://', 'wss://').replace('http://', 'ws://');
-
-    const mbClient = createPrivatePaymentsClient({ cluster: opts.network });
+    const rpcUrl  = opts.rpcUrl ?? SOLANA_DEVNET_RPC;
+    const mbClient = createMagicBlockClient(opts.network === 'mainnet' ? 'mainnet' : 'devnet');
 
     const client = new HushClient(
-      { network: opts.network, rpcUrl, rpcWsUrl, signer: opts.signer },
+      { network: opts.network, rpcUrl, signer: opts.signer },
       mbClient,
     );
 
@@ -87,7 +62,6 @@ export class HushClient {
         opts.signer,
         opts.network,
         rpcUrl,
-        rpcWsUrl,
       );
     }
 
@@ -97,118 +71,55 @@ export class HushClient {
   // ── Umbra flows ─────────────────────────────────────────────────────────────
 
   /**
-   * Register the wallet with Umbra on-chain.
-   * Must be called before any deposit/UTXO operations.
-   * Safe to call repeatedly (handles key rotation).
+   * Shield USDC from the user's public wallet into Umbra private balance.
    */
-  async registerUmbra(): Promise<string[]> {
-    this.requireUmbra();
-    return this.umbraSession!.register();
-  }
-
-  /**
-   * Deposit USDC from the user's public wallet into Umbra encrypted balance.
-   * This is Step 1 of the HUSH deposit flow — stealth ingress.
-   *
-   * @param amount - Amount in USDC base units (1 USDC = 1_000_000)
-   */
-  async shieldDeposit(amount: bigint): Promise<UmbraDepositResult> {
+  async shieldDeposit(amount: bigint, owner: PublicKey): Promise<Transaction> {
     this.requireUmbra();
     const mint = this.network === 'mainnet'
       ? USDC_MINT_MAINNET.toBase58()
       : USDC_MINT_DEVNET.toBase58();
-    return this.umbraSession!.deposit(mint, amount);
+    return this.umbraSession!.shield(mint, amount, owner);
   }
 
   /**
-   * Withdraw USDC from Umbra encrypted balance back to public wallet.
-   *
-   * @param amount - Amount in USDC base units
+   * Send tokens privately to another recipient (anonymous grant).
    */
-  async withdrawFromShield(amount: bigint): Promise<UmbraWithdrawResult> {
+  async sendPrivateGrant(
+    recipient: string,
+    amount: bigint,
+  ): Promise<Transaction> {
     this.requireUmbra();
     const mint = this.network === 'mainnet'
       ? USDC_MINT_MAINNET.toBase58()
       : USDC_MINT_DEVNET.toBase58();
-    return this.umbraSession!.withdraw(mint, amount);
+    return this.umbraSession!.sendPrivate(recipient, mint, amount);
   }
 
-  // ── MagicBlock Private Payments flows ───────────────────────────────────────
+  /**
+   * Get private balance from Umbra.
+   */
+  async getUmbraPrivateBalance(): Promise<bigint> {
+    this.requireUmbra();
+    const mint = this.network === 'mainnet'
+      ? USDC_MINT_MAINNET.toBase58()
+      : USDC_MINT_DEVNET.toBase58();
+    return this.umbraSession!.getPrivateBalance(mint);
+  }
+
+  // ── MagicBlock / ER flows ──────────────────────────────────────────────────
 
   /**
    * Build a deposit transaction into the MagicBlock ephemeral rollup.
-   * Step 2 of HUSH: move shielded funds into the private rollup for yield + grants.
-   *
-   * @param ownerAddress - Base-58 address of the fund owner
-   * @param amount       - USDC base units
    */
-  async buildRollupDeposit(ownerAddress: string, amount: bigint): Promise<MBTxEnvelope> {
-    return this.mbClient.buildDeposit(ownerAddress, amount);
+  async buildRollupDeposit(ownerAddress: string, amount: bigint): Promise<Transaction> {
+    return this.mbClient.delegateAccount(new PublicKey(ownerAddress), new PublicKey(ownerAddress));
   }
 
   /**
-   * Build a private transfer inside the MagicBlock ephemeral rollup.
-   * Used for internal rebalancing and yield moves — completely off-chain.
-   *
-   * @param from   - Source address
-   * @param to     - Destination address
-   * @param amount - USDC base units
-   * @param memo   - Optional reference string
+   * Execute a transaction through the MagicBlock Router (ER-aware).
    */
-  async buildPrivateRollupTransfer(
-    from:   string,
-    to:     string,
-    amount: bigint,
-    memo?:  string,
-  ): Promise<MBTxEnvelope> {
-    return this.mbClient.buildPrivateTransfer(from, to, amount, memo);
-  }
-
-  /**
-   * Advise a grant — create a private UTXO to the NPO via Umbra (anonymous send).
-   * The NPO can claim the UTXO with no on-chain link to the donor.
-   *
-   * Alternatively, use buildSettlementTransfer() for a MagicBlock-routed payout.
-   *
-   * @param npoAddress - Recipient NPO wallet address
-   * @param amount     - USDC base units
-   * @param memo       - Grant purpose / reference
-   */
-  async adviseGrant(
-    npoAddress: string,
-    amount:     bigint,
-    memo?:      string,
-  ): Promise<UmbraUtxoResult> {
-    this.requireUmbra();
-    const mint = this.network === 'mainnet'
-      ? USDC_MINT_MAINNET.toBase58()
-      : USDC_MINT_DEVNET.toBase58();
-    return this.umbraSession!.sendPrivateGrant(npoAddress, mint, amount);
-  }
-
-  /**
-   * Build a settlement transfer from rollup → NPO base wallet.
-   * Used by the SettlementRelay server-side agent for on-chain grant settlement.
-   *
-   * @param relayAddress - The HUSH settlement relay address (ephemeral balance holder)
-   * @param npoAddress   - Final recipient NPO address
-   * @param amount       - USDC base units
-   * @param memo         - Grant reference / ID
-   */
-  async buildGrantSettlement(
-    relayAddress: string,
-    npoAddress:   string,
-    amount:       bigint,
-    memo?:        string,
-  ): Promise<MBTxEnvelope> {
-    return this.mbClient.buildSettlementTransfer(relayAddress, npoAddress, amount, memo);
-  }
-
-  /**
-   * Query the ephemeral rollup (private) balance for an address.
-   */
-  async getPrivateBalance(address: string): Promise<MBPrivateBalance> {
-    return this.mbClient.getPrivateBalance(address);
+  async executeTransaction(tx: Transaction, signers: any[]): Promise<string> {
+    return this.mbClient.sendAndConfirmTransaction(tx, signers);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────

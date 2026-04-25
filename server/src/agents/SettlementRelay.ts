@@ -23,8 +23,8 @@
 import { Keypair, Connection, Transaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { db } from '../db/client';
-import { grants } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { grants, Grant } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -111,17 +111,10 @@ async function signAndSubmit(
 
 async function settlePendingGrants(relay: Keypair | null): Promise<void> {
   // Fetch all pending grants
-  let pending: Array<{
-    id: string;
-    donor: string;
-    npo: string;
-    amountUsdc: number;
-    status: string;
-    purpose: string | null;
-  }>;
+  let pending: Grant[];
 
   try {
-    pending = await db.select().from(grants).where(eq(grants.status, 'advised'));
+    pending = await db.select().from(grants).where(eq(grants.status, 'pending'));
   } catch {
     return; // DB not ready yet
   }
@@ -139,19 +132,19 @@ async function settlePendingGrants(relay: Keypair | null): Promise<void> {
         // Step 1: Private transfer from relay ephemeral → NPO ephemeral
         const privateEnv = await buildTransfer({
           from:        relay.publicKey.toBase58(),
-          to:          grant.npo,
+          to:          grant.charityWallet,
           amount:      amountBaseUnits,
           visibility:  'private',
           fromBalance: 'ephemeral',
           toBalance:   'ephemeral',
-          memo:        grant.purpose ?? `HUSH grant ${grant.id}`,
+          memo:        grant.encryptedMemo ?? `HUSH grant ${grant.id}`,
         });
         await signAndSubmit(privateEnv, relay);
 
         // Step 2: Public settlement — NPO ephemeral → NPO base wallet
         const settlementEnv = await buildTransfer({
           from:        relay.publicKey.toBase58(),
-          to:          grant.npo,
+          to:          grant.charityWallet,
           amount:      amountBaseUnits,
           visibility:  'public',
           fromBalance: 'ephemeral',
@@ -161,7 +154,7 @@ async function settlePendingGrants(relay: Keypair | null): Promise<void> {
         txSig = await signAndSubmit(settlementEnv, relay);
       } else {
         // ── Stub mode (no relay keypair) ───────────────────────────────────
-        txSig = `STUB_${Date.now().toString(36).toUpperCase()}_${grant.id.slice(0, 8)}`;
+        txSig = `STUB_${Date.now().toString(36).toUpperCase()}_${grant.id.toString().slice(0, 8)}`;
         console.log(`[SettlementRelay] Stub settlement for grant ${grant.id}`);
       }
 
