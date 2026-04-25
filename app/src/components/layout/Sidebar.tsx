@@ -9,11 +9,28 @@ import {
   Wifi,
   Bot,
   Circle,
+  Github,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   accountId: string;
+}
+
+// ── Custom X (formerly Twitter) Logo ──────────────────────────────────────────
+function XLogo({ size = 18, className }: { size?: number; className?: string }) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="currentColor" 
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z" />
+    </svg>
+  );
 }
 
 const navItems = (accountId: string) => [
@@ -38,12 +55,12 @@ export function Sidebar({ accountId }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-hush-bg-surface border-r border-hush-bg-border">
+    <aside className="flex flex-col w-60 min-h-screen bg-hush-bg-surface border-r border-hush-bg-border sticky top-0">
       {/* Logo area — spacer to match TopBar height */}
       <div className="h-16 border-b border-hush-bg-border flex items-center px-5">
-        <span className="font-display font-bold text-lg text-hush-violet-400 tracking-tight">
+        <Link href="/" className="font-display font-bold text-lg text-hush-violet-400 tracking-tight hover:text-hush-violet-300 transition-colors">
           HUSH
-        </span>
+        </Link>
       </div>
 
       {/* Primary nav */}
@@ -57,51 +74,74 @@ export function Sidebar({ accountId }: SidebarProps) {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg',
-                'text-sm font-medium font-body transition-all duration-150',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg group',
+                'text-sm font-medium font-body transition-all duration-200',
                 isActive
                   ? 'bg-hush-violet/15 text-hush-violet-300 shadow-sm'
-                  : 'text-[--text-secondary] hover:bg-hush-bg-elevated hover:text-[--text-primary]',
+                  : 'text-[--text-secondary] hover:bg-hush-bg-elevated hover:text-[--text-primary] hover:translate-x-1',
               )}
             >
               <Icon
                 size={16}
                 className={cn(
-                  'shrink-0 transition-colors duration-150',
-                  isActive ? 'text-hush-violet' : 'text-[--text-muted]',
+                  'shrink-0 transition-colors duration-200 group-hover:scale-110',
+                  isActive ? 'text-hush-violet' : 'text-[--text-muted] group-hover:text-hush-violet-300',
                 )}
               />
               {label}
               {isActive && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-hush-violet" />
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-hush-violet animate-pulse" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom status indicators */}
-      <div className="px-4 py-4 border-t border-hush-bg-border space-y-2.5">
-        {/* PER (Private Ephemeral Rollup) status */}
-        <StatusRow
-          icon={<Wifi size={13} />}
-          label="PER Status"
-          value="Active"
-          color="teal"
-        />
+      {/* Bottom social & status */}
+      <div className="px-4 py-4 border-t border-hush-bg-border space-y-4">
+        <div className="flex items-center justify-center gap-4 py-1">
+          <a 
+            href="https://x.com/Ahindra_D" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-hush-violet-300 hover:bg-hush-violet/10 transition-all hover:-translate-y-1"
+            title="X (formerly Twitter)"
+          >
+            <XLogo size={16} />
+          </a>
+          <a 
+            href="https://github.com/AhindraD/hush-v1" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-hush-teal hover:bg-hush-teal/10 transition-all hover:-translate-y-1"
+            title="GitHub"
+          >
+            <Github size={16} />
+          </a>
+        </div>
 
-        {/* AI Agent status */}
-        <StatusRow
-          icon={<Bot size={13} />}
-          label="AI Agent"
-          value="Running"
-          color="violet"
-        />
+        <div className="space-y-2.5">
+          {/* PER (Private Ephemeral Rollup) status */}
+          <StatusRow
+            icon={<Wifi size={13} />}
+            label="PER Status"
+            value="Active"
+            color="teal"
+          />
 
-        {/* Solana network */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-hush-bg-elevated">
-          <Circle size={8} className="fill-amber-400 text-amber-400 shrink-0" />
-          <span className="label-text">Solana Devnet</span>
+          {/* AI Agent status */}
+          <StatusRow
+            icon={<Bot size={13} />}
+            label="AI Agent"
+            value="Running"
+            color="violet"
+          />
+
+          {/* Solana network */}
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-hush-bg-elevated">
+            <Circle size={8} className="fill-amber-400 text-amber-400 shrink-0" />
+            <span className="label-text">Solana Devnet</span>
+          </div>
         </div>
       </div>
     </aside>

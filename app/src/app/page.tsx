@@ -14,10 +14,24 @@ import {
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 
-// ────────────────────────────────────────────────────────────
-// Demo account for CTA links
-// ────────────────────────────────────────────────────────────
+// ── Demo account for CTA links ────────────────────────────────────────────
 const DEMO_ACCOUNT_ID = 'demo_hush_account_01';
+
+// ── Custom X Logo ─────────────────────────────────────────────────────────
+function XLogo({ size = 18, className }: { size?: number; className?: string }) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="currentColor" 
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z" />
+    </svg>
+  );
+}
 
 // ────────────────────────────────────────────────────────────
 // Landing Page (server component — no data fetching)
@@ -27,7 +41,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[--bg-base]">
       <TopBar />
 
-      <main>
+      <main className="relative">
         {/* ── Hero ─────────────────────────────────────────── */}
         <HeroSection />
 
@@ -86,7 +100,7 @@ function HeroSection() {
 
       <div className="relative max-w-4xl mx-auto text-center">
         {/* Eyebrow badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-hush-violet/30 bg-hush-violet/10 mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-hush-violet/30 bg-hush-violet/10 mb-8 animate-in fade-in slide-in-from-top-4 duration-1000 fill-mode-both">
           <span className="w-1.5 h-1.5 rounded-full bg-hush-violet animate-pulse" />
           <span className="text-xs font-medium font-body text-hush-violet-300">
             Built on Solana · Umbra · MagicBlock
@@ -94,13 +108,13 @@ function HeroSection() {
         </div>
 
         {/* Headline */}
-        <h1 className="font-display font-bold text-5xl md:text-7xl leading-[1.05] tracking-tight mb-6">
+        <h1 className="font-display font-bold text-5xl md:text-7xl leading-[1.05] tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100 fill-mode-both">
           Give generously.{' '}
           <span className="gradient-text block md:inline">Stay private.</span>
         </h1>
 
         {/* Subheading */}
-        <p className="text-lg md:text-xl text-[--text-secondary] max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-[--text-secondary] max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200 fill-mode-both">
           HUSH is a confidential philanthropy engine. Stealth deposits, AI-optimized
           yield, and ZK-Tax-Receipts — all on Solana. No one knows you gave.
           The IRS still can.
@@ -110,17 +124,17 @@ function HeroSection() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href={`/dashboard/${DEMO_ACCOUNT_ID}`}
-            className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm"
+            className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 fill-mode-both"
           >
             <ShieldCheck size={16} />
             Launch App
             <ArrowRight size={14} />
           </Link>
           <a
-            href="https://docs.hush.finance"
+            href="https://github.com/AhindraD/hush-v1"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-ghost inline-flex items-center gap-2 px-6 py-3 text-sm"
+            className="btn-ghost inline-flex items-center gap-2 px-6 py-3 text-sm animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-400 fill-mode-both"
           >
             <FileText size={14} />
             Read Docs
@@ -128,8 +142,8 @@ function HeroSection() {
         </div>
 
         {/* Trust note */}
-        <p className="mt-6 text-xs text-[--text-muted]">
-          Non-custodial · Open source · Audited by Neodyme
+        <p className="mt-6 text-xs text-[--text-muted] animate-in fade-in duration-1000 delay-500 fill-mode-both">
+          Non-custodial · Open source · Built by <a href="https://x.com/Ahindra_D" className="text-hush-violet-300 hover:underline" target="_blank" rel="noopener noreferrer">@Ahindra_D</a>
         </p>
       </div>
     </section>
@@ -232,8 +246,8 @@ function FeaturesSection() {
 
         {/* Feature grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((feat) => (
-            <FeatureCard key={feat.title} {...feat} />
+          {FEATURES.map((feat, i) => (
+            <FeatureCard key={feat.title} {...feat} index={i} />
           ))}
         </div>
       </div>
@@ -247,9 +261,10 @@ interface FeatureCardProps {
   description: string;
   tag:         string;
   color:       'violet' | 'teal' | 'gold';
+  index:       number;
 }
 
-function FeatureCard({ icon: Icon, title, description, tag, color }: FeatureCardProps) {
+function FeatureCard({ icon: Icon, title, description, tag, color, index }: FeatureCardProps) {
   const colorMap = {
     violet: { icon: 'bg-hush-violet/10 text-hush-violet-300', tag: 'bg-hush-violet/10 text-hush-violet-300', border: 'hover:border-hush-violet/30' },
     teal:   { icon: 'bg-hush-teal/10 text-hush-teal',         tag: 'bg-hush-teal/10 text-hush-teal',         border: 'hover:border-hush-teal/30'   },
@@ -257,7 +272,10 @@ function FeatureCard({ icon: Icon, title, description, tag, color }: FeatureCard
   }[color];
 
   return (
-    <div className={`glass-card p-5 flex flex-col gap-4 transition-all duration-200 ${colorMap.border}`}>
+    <div 
+      className={`glass-card p-5 flex flex-col gap-4 transition-all duration-300 ${colorMap.border} hover:scale-[1.03] animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both`}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className={`p-2.5 rounded-xl ${colorMap.icon}`}>
           <Icon size={17} />
@@ -324,7 +342,7 @@ function PrivacyStackSection() {
           {STACK_LAYERS.map((layer, i) => (
             <div
               key={layer.name}
-              className={`p-4 rounded-xl border border-[--border-subtle] bg-hush-bg-elevated border-l-2 ${layer.color}`}
+              className={`p-4 rounded-xl border border-[--border-subtle] bg-hush-bg-elevated border-l-2 ${layer.color} transition-transform duration-200 hover:translate-x-1`}
               style={{ opacity: 1 - i * 0.05 }}
             >
               <div className="flex items-center gap-3">
@@ -387,7 +405,7 @@ function HowItWorksSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {STEPS.map((step) => (
-            <div key={step.step} className="glass-card p-5 flex gap-4">
+            <div key={step.step} className="glass-card p-5 flex gap-4 transition-transform hover:scale-[1.01]">
               <span className={`font-display font-bold text-3xl leading-none shrink-0 mt-0.5 ${step.color}`}>
                 {step.step}
               </span>
@@ -429,7 +447,7 @@ function CtaSection() {
           />
 
           <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-hush-violet/15 border border-hush-violet/30 flex items-center justify-center mx-auto mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-hush-violet/15 border border-hush-violet/30 flex items-center justify-center mx-auto mb-6 animate-float">
               <ShieldCheck size={24} className="text-hush-violet-300" />
             </div>
 
@@ -444,17 +462,17 @@ function CtaSection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href={`/dashboard/${DEMO_ACCOUNT_ID}`}
-                className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm"
+                className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm animate-in fade-in slide-in-from-bottom-2 duration-700 delay-500 fill-mode-both"
               >
                 <ShieldCheck size={15} />
                 Open Dashboard
                 <ArrowRight size={14} />
               </Link>
               <a
-                href="https://github.com/hush-protocol"
+                href="https://github.com/AhindraD/hush-v1"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-ghost inline-flex items-center gap-2 px-6 py-3 text-sm"
+                className="btn-ghost inline-flex items-center gap-2 px-6 py-3 text-sm animate-in fade-in slide-in-from-bottom-2 duration-700 delay-700 fill-mode-both"
               >
                 <Github size={14} />
                 View on GitHub
@@ -479,13 +497,16 @@ function LandingFooter() {
           <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
             <path d="M8 1.5L2 4v4c0 3.314 2.686 6 6 6s6-2.686 6-6V4L8 1.5z" stroke="#8b5cf6" strokeWidth="1.2" />
           </svg>
-          <span className="text-sm font-display font-bold text-[--text-muted]">HUSH</span>
-          <span className="text-xs text-[--text-disabled]">· Silent Philanthropy on Solana</span>
+          <span className="text-sm font-display font-bold text-[--text-primary]">HUSH</span>
+          <span className="text-xs text-[--text-muted]">· by <a href="https://x.com/Ahindra_D" className="hover:text-hush-violet-300 transition-colors" target="_blank" rel="noopener noreferrer">@Ahindra_D</a></span>
         </div>
 
         <div className="flex items-center gap-5">
-          <a href="https://docs.hush.finance" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors" target="_blank" rel="noopener noreferrer">Docs</a>
-          <a href="https://github.com/hush-protocol" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/AhindraD/hush-v1" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://x.com/Ahindra_D" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors flex items-center gap-1" target="_blank" rel="noopener noreferrer">
+            <XLogo size={12} />
+            X
+          </a>
           <a href="/privacy" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors">Privacy</a>
           <a href="/terms" className="text-xs text-[--text-muted] hover:text-[--text-secondary] transition-colors">Terms</a>
         </div>

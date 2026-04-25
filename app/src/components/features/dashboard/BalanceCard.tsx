@@ -26,13 +26,20 @@ export function BalanceCard({ account, isLoading }: BalanceCardProps) {
     : 0;
 
   return (
-    <div className="col-span-2 glass-card p-6 border-l-2 border-l-hush-violet/50 relative overflow-hidden">
+    <div className="col-span-2 glass-card p-6 border-l-2 border-l-hush-violet/50 relative overflow-hidden group">
       {/* Background ambient glow */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-1000 group-hover:opacity-100"
         aria-hidden="true"
         style={{
-          background: 'radial-gradient(ellipse 60% 80% at 5% 50%, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 60% 80% at 5% 50%, rgba(139,92,246,0.1) 0%, transparent 70%)',
+        }}
+      />
+      <div
+        className="absolute -inset-[100%] pointer-events-none opacity-20 animate-pulse duration-[4000ms]"
+        aria-hidden="true"
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(20,184,166,0.08) 0%, transparent 40%)',
         }}
       />
 

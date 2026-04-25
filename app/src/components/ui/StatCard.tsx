@@ -48,7 +48,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'glass-card p-5 border-l-2',
+        'glass-card p-5 border-l-2 transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-black/5',
         colors.accent,
         className,
       )}
