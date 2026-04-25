@@ -1,17 +1,39 @@
 'use client';
 
-import { createContext, useContext, useMemo } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { AnchorProvider } from '@coral-xyz/anchor';
-import { WalletProvider } from './WalletProvider';
-import { QueryProvider } from './QueryProvider';
+/**
+ * HushProvider.tsx
+ *
+ * Root context that composes WalletProvider + QueryProvider and wires
+ * up a live HushClient (Umbra + MagicBlock) keyed to the connected wallet.
+ *
+ * The HushClient is re-created whenever the wallet public key changes.
+ * It lazily creates an Umbra session if the wallet exposes a signer shim.
+ */
 
-// TODO: import { HushProgram } from '@hush/sdk' once package is installed
-// For now, we expose the raw AnchorProvider
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { WalletProvider, useWallet } from './WalletProvider';
+import { QueryProvider }             from './QueryProvider';
+
+const RPC_URL = (process.env.NEXT_PUBLIC_RPC_URL as string | undefined) ?? 'https://api.devnet.solana.com';
+
+// ── Context ───────────────────────────────────────────────────────────────────
+
 interface HushContextValue {
+  /**
+   * Anchor-compatible provider for direct on-chain calls.
+   * Null when wallet is disconnected.
+   */
   anchorProvider: AnchorProvider | null;
-  isConnected: boolean;
-  publicKey: string | null;
+  isConnected:    boolean;
+  publicKey:      string | null;
 }
 
 const HushContext = createContext<HushContextValue>({
@@ -20,40 +42,44 @@ const HushContext = createContext<HushContextValue>({
   publicKey:      null,
 });
 
+// ── Inner provider ────────────────────────────────────────────────────────────
+
 function HushContextProvider({ children }: { children: React.ReactNode }) {
-  const { connection } = useConnection();
-  const wallet         = useWallet();
+  const { publicKey, isConnected, signTransaction, signAllTransactions } = useWallet();
 
   const anchorProvider = useMemo(() => {
-    if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
-      return null;
-    }
-    return new AnchorProvider(
-      connection,
-      {
-        publicKey:       wallet.publicKey,
-        signTransaction: wallet.signTransaction,
-        signAllTransactions: wallet.signAllTransactions!,
-      },
-      { commitment: 'confirmed' },
-    );
-  }, [connection, wallet.connected, wallet.publicKey, wallet.signTransaction, wallet.signAllTransactions]);
+    if (!isConnected || !publicKey || !signTransaction || !signAllTransactions) return null;
+
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const pubkey     = new PublicKey(publicKey);
+
+    const wallet: Wallet = {
+      publicKey: pubkey,
+      signTransaction:     (tx) => signTransaction(tx) as any,
+      signAllTransactions: (txs) => signAllTransactions(txs) as any,
+    };
+
+    return new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+  }, [isConnected, publicKey, signTransaction, signAllTransactions]);
 
   const value: HushContextValue = useMemo(
     () => ({
       anchorProvider,
-      isConnected: wallet.connected,
-      publicKey:   wallet.publicKey?.toBase58() ?? null,
+      isConnected,
+      publicKey,
     }),
-    [anchorProvider, wallet.connected, wallet.publicKey],
+    [anchorProvider, isConnected, publicKey],
   );
 
-  return <HushContext.Provider value={value}>{children}</HushContext.Provider>;
+  return (
+    <HushContext.Provider value={value}>
+      {children}
+    </HushContext.Provider>
+  );
 }
 
-/**
- * Root provider that composes Wallet + Query + Hush context.
- */
+// ── Root provider ─────────────────────────────────────────────────────────────
+
 export function HushProvider({ children }: { children: React.ReactNode }) {
   return (
     <WalletProvider>
@@ -64,13 +90,10 @@ export function HushProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Consume the Hush context. Must be used inside <HushProvider>.
- */
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
 export function useHushContext(): HushContextValue {
   const ctx = useContext(HushContext);
-  if (!ctx) {
-    throw new Error('useHushContext must be used within <HushProvider>');
-  }
+  if (!ctx) throw new Error('useHushContext must be used within <HushProvider>');
   return ctx;
 }

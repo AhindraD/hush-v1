@@ -3,23 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "description": "HUSH — Confidential Philanthropy Engine on Solana",
-  "workspaces": ["packages/*", "app", "server"],
   "scripts": {
-    "dev:app": "pnpm --filter @hush/app dev",
-    "dev:server": "pnpm --filter @hush/server dev",
-    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:app\"",
-    "build:app": "pnpm --filter @hush/app build",
-    "build:server": "pnpm --filter @hush/server build",
+    "dev:app":        "pnpm --filter @hush/app dev",
+    "dev:server":     "pnpm --filter @hush/server dev",
+    "dev":            "concurrently \"pnpm dev:server\" \"pnpm dev:app\"",
+    "build:app":      "pnpm --filter @hush/app build",
+    "build:server":   "pnpm --filter @hush/server build",
     "build:programs": "anchor build",
-    "test:programs": "anchor test --skip-local-validator",
-    "lint": "pnpm -r lint"
+    "test:programs":  "anchor test --skip-local-validator",
+    "lint":           "pnpm -r lint"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "typescript": "^5.6.3"
+    "concurrently":      "^9.1.2",
+    "typescript":        "^5.6.3",
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js":   "^1.95.8",
+    "ts-mocha":          "^10.0.0",
+    "@types/mocha":      "^10.0.9",
+    "chai":              "^4.5.0",
+    "@types/chai":       "^4.3.20"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=20.9",
     "pnpm": ">=9"
   }
 }

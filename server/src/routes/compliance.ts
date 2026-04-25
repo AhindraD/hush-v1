@@ -1,104 +1,93 @@
-import { Router, Request, Response } from 'express';
+/**
+ * compliance.ts — Viewing key verification and ZK-Tax-Receipt routes.
+ * Also proxies the MagicBlock private-balance API to avoid CORS issues.
+ */
+
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { AccountService } from '../services/AccountService';
 import { ViewingKeyService } from '../services/ViewingKeyService';
 
-const router = Router();
-const accountService = new AccountService();
-const viewingKeyService = new ViewingKeyService();
+export const complianceRouter = Router();
 
-// ---------------------------------------------------------------------------
-// Zod schemas
-// ---------------------------------------------------------------------------
-const ViewingKeyBodySchema = z.object({
-  viewingKey: z.string().min(8, 'Viewing key must be at least 8 characters'),
-  taxYear: z
-    .number()
-    .int()
-    .min(2020)
-    .max(new Date().getFullYear() + 1),
-  scope: z
-    .enum(['deposits_only', 'grants_only', 'full'])
-    .optional()
-    .default('full'),
+// ── Schemas ───────────────────────────────────────────────────────────────────
+
+const verifyKeySchema = z.object({
+  viewingKey: z.string().min(3),
+  taxYear:    z.number().int().min(2020).max(2050),
 });
 
-// ---------------------------------------------------------------------------
-// POST /accounts/:id/viewing-key
-// Verifies a viewing key, generates audit log, returns decrypted data.
-// ---------------------------------------------------------------------------
-router.post('/:id/viewing-key', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id ?? '', 10);
-  if (isNaN(id)) {
-    res.status(400).json({ error: 'Invalid account id' });
-    return;
-  }
+// ── GET /private-balance/:address ─────────────────────────────────────────────
+// Proxies MagicBlock GET /v1/spl/private-balance to avoid browser CORS.
 
-  const parsed = ViewingKeyBodySchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: 'Validation failed',
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+complianceRouter.get(
+  '/private-balance/:address',
+  async (req: Request, res: Response): Promise<void> => {
+    const { address } = req.params;
+    const cluster = (req.query.cluster as string) ?? 'devnet';
+    const mint    = (req.query.mint as string) ??
+      (cluster === 'mainnet'
+        ? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+        : '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
-  const { viewingKey, taxYear } = parsed.data;
+    try {
+      const url = new URL('https://payments.magicblock.app/v1/spl/private-balance');
+      url.searchParams.set('address', address);
+      url.searchParams.set('cluster', cluster);
+      url.searchParams.set('mint', mint);
 
-  // Step 1: Verify key validity
-  const isValid = await viewingKeyService.verifyKey(id, viewingKey);
-  if (!isValid) {
-    // Return 401 with generic message — do not leak account existence
-    res.status(401).json({
-      error: 'Invalid viewing key. Access denied.',
-    });
-    return;
-  }
+      const upstream = await fetch(url.toString());
+      if (!upstream.ok) {
+        const text = await upstream.text();
+        res.status(upstream.status).json({ error: text });
+        return;
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  },
+);
 
-  // Step 2: Generate full audit result and persist audit log
-  const ipAddress =
-    (req.headers['x-forwarded-for'] as string | undefined) ??
-    req.socket.remoteAddress ??
-    'unknown';
+// ── POST /:accountId/verify ───────────────────────────────────────────────────
 
-  try {
-    const auditResult = await accountService.generateAuditLog(
-      id,
-      viewingKey,
-      taxYear,
-      'api_request',
-      ipAddress
-    );
-
-    if (!auditResult) {
-      res.status(404).json({ error: 'Account not found' });
+complianceRouter.post(
+  '/:accountId/verify',
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = verifyKeySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
       return;
     }
 
-    // Step 3: Also generate structured tax receipt
-    const taxReceipt = await viewingKeyService.generateTaxReceipt(
-      id,
-      viewingKey,
-      taxYear
-    );
+    try {
+      const receipt = await ViewingKeyService.generateTaxReceipt(
+        req.params.accountId,
+        parsed.data.viewingKey,
+        parsed.data.taxYear,
+      );
+      res.json(receipt);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg.includes('not found') || msg.includes('Invalid viewing key')) {
+        res.status(404).json({ error: msg });
+      } else {
+        res.status(500).json({ error: msg });
+      }
+    }
+  },
+);
 
-    res.json({
-      message: 'Viewing key verified. Audit log generated.',
-      taxYear,
-      auditResult: {
-        totalDeposited: auditResult.totalDeposited,
-        totalGranted: auditResult.totalGranted,
-        depositCount: auditResult.deposits.length,
-        grantCount: auditResult.grants.length,
-        zkReceiptHash: auditResult.zkReceiptHash,
-        generatedAt: auditResult.generatedAt,
-      },
-      taxReceipt,
-    });
-  } catch (err: unknown) {
-    console.error('[POST /viewing-key]', err);
-    res.status(500).json({ error: 'Failed to generate audit log' });
-  }
-});
+// ── GET /:accountId/audit-log ─────────────────────────────────────────────────
 
-export default router;
+complianceRouter.get(
+  '/:accountId/audit-log',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const log = await ViewingKeyService.getAuditLog(req.params.accountId);
+      res.json({ entries: log });
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+    }
+  },
+);

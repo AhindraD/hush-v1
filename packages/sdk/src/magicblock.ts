@@ -1,269 +1,302 @@
 /**
- * MagicBlock Ephemeral Rollup (PER) wrapper for HUSH.
+ * magicblock.ts — Real MagicBlock Private Payments API client for HUSH.
  *
- * In production, the on-chain `ShieldedAccount` PDAs would be delegated to the
- * MagicBlock Ephemeral Rollup (ER) for instant, gasless, private intra-rollup
- * transfers. This module provides stub implementations that mirror the
- * production API surface so the rest of the SDK can be developed against
- * real types without requiring a live rollup connection.
+ * Wraps the MagicBlock Private Payments REST API (https://payments.magicblock.app)
+ * to provide typed, awaitable helpers for:
+ *  - Depositing SPL tokens from Solana base layer → ephemeral rollup
+ *  - Executing private SPL transfers inside the ephemeral rollup
+ *  - Withdrawing SPL tokens back to Solana base layer
+ *  - Querying private (ephemeral) balances
  *
- * Production integration points:
- *  - Delegation:   `@magicblock-labs/ephemeral-rollups-sdk` `delegate()`
- *  - Undelegation: `@magicblock-labs/ephemeral-rollups-sdk` `undelegate()`
- *  - Private txs:  Submit to the MagicBlock RPC endpoint directly
- *  - Balances:     Query the rollup state via the MagicBlock RPC
+ * API docs: https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/api-reference/per/introduction
+ *
+ * Flow:
+ *   1. Call buildDeposit() → unsigned tx → wallet signs → submit to base RPC
+ *   2. Call buildPrivateTransfer() → unsigned tx → wallet signs → submit to ephemeral RPC
+ *   3. Call buildWithdraw() → unsigned tx → wallet signs → submit to ephemeral RPC
  */
 
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-} from '@solana/web3.js';
-import { MAGICBLOCK_RPC } from './constants';
+import { Transaction, Connection, PublicKey } from '@solana/web3.js';
+import { MAGICBLOCK_PAYMENTS_API, MAGICBLOCK_RPC, MAGICBLOCK_VALIDATORS, SOLANA_DEVNET_RPC } from './constants';
 
-// ---------------------------------------------------------------------------
-// MagicBlockSession
-// ---------------------------------------------------------------------------
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type MBCluster = 'mainnet' | 'devnet';
+export type MBVisibility = 'public' | 'private';
+export type MBBalance = 'base' | 'ephemeral';
+
+/** Unsigned transaction envelope returned by all MagicBlock build endpoints */
+export interface MBTxEnvelope {
+  kind:                 'deposit' | 'withdraw' | 'transfer';
+  version:              'legacy';
+  transactionBase64:    string;
+  /** Which RPC the signed tx should be submitted to */
+  sendTo:               'base' | 'ephemeral';
+  recentBlockhash:      string;
+  lastValidBlockHeight: number;
+  instructionCount:     number;
+  requiredSigners:      string[];
+  validator?:           string;
+}
+
+/** Response from GET /v1/spl/private-balance */
+export interface MBPrivateBalance {
+  address:  string;
+  mint:     string;
+  ata:      string;
+  location: 'base' | 'ephemeral';
+  /** Raw token balance as a decimal string (e.g. "1000000" = 1 USDC) */
+  balance:  string;
+}
+
+// ── HTTP helper ───────────────────────────────────────────────────────────────
+
+async function mbPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(`${MAGICBLOCK_PAYMENTS_API}${path}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`MagicBlock API ${path} → ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function mbGet<T>(path: string, params: Record<string, string>): Promise<T> {
+  const url = new URL(`${MAGICBLOCK_PAYMENTS_API}${path}`);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url.toString(), { method: 'GET' });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`MagicBlock API GET ${path} → ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+// ── Transaction deserialiser ──────────────────────────────────────────────────
 
 /**
- * Manages a connection to the MagicBlock Ephemeral Rollup RPC and exposes
- * helpers for delegation, undelegation, and private-transfer operations.
+ * Deserialise a base-64 encoded legacy transaction from the MagicBlock API.
+ * The caller must sign and submit it to the RPC indicated by `envelope.sendTo`.
  */
-export class MagicBlockSession {
-  private readonly connection: Connection;
-  private readonly rpcUrl: string;
+export function deserializeMBTransaction(envelope: MBTxEnvelope): Transaction {
+  const buf = Buffer.from(envelope.transactionBase64, 'base64');
+  return Transaction.from(buf);
+}
 
-  /**
-   * @param rpcUrl - MagicBlock RPC endpoint. Defaults to the devnet endpoint.
-   */
-  constructor(rpcUrl: string = MAGICBLOCK_RPC) {
-    this.rpcUrl = rpcUrl;
-    this.connection = new Connection(rpcUrl, 'confirmed');
-  }
+// ── PrivatePaymentsClient ─────────────────────────────────────────────────────
 
-  /**
-   * Returns the underlying `Connection` to the MagicBlock RPC.
-   */
-  getConnection(): Connection {
-    return this.connection;
-  }
+export interface PrivatePaymentsClientOptions {
+  cluster?:   MBCluster;
+  /** Optional: override the validator identity. Defaults to API-resolved identity. */
+  validator?: string;
+  /** Mint address. Defaults to USDC on the selected cluster. */
+  mint?:      string;
+}
 
-  /**
-   * Builds a transaction that delegates `accountPubkey` to the Ephemeral Rollup.
-   *
-   * In production this calls `delegate()` from
-   * `@magicblock-labs/ephemeral-rollups-sdk`, which generates the necessary
-   * CPI instruction to transfer account ownership to the ER program.
-   *
-   * @param accountPubkey - The PDA to delegate (e.g. a `ShieldedAccount` PDA).
-   * @param payer         - The fee payer for this transaction.
-   * @param seeds         - PDA seeds used to re-derive the account on the rollup.
-   * @returns An unsigned `Transaction` containing the delegation instruction.
-   */
-  async buildDelegateInstruction(
-    accountPubkey: PublicKey,
-    payer: PublicKey,
-    seeds: Buffer[],
-  ): Promise<Transaction> {
-    /*
-     * PRODUCTION IMPLEMENTATION:
-     *
-     *   import { delegate } from '@magicblock-labs/ephemeral-rollups-sdk';
-     *
-     *   const delegateIx = await delegate({
-     *     payer,
-     *     account: accountPubkey,
-     *     ownerProgram: HUSH_PROGRAM_ID,
-     *     seeds,
-     *     commitFrequencyMs: 5_000,
-     *     validUntil: Math.floor(Date.now() / 1000) + 3600,
-     *   });
-     *
-     *   const tx = new Transaction().add(delegateIx);
-     *   const { blockhash } = await this.connection.getLatestBlockhash();
-     *   tx.recentBlockhash = blockhash;
-     *   tx.feePayer = payer;
-     *   return tx;
-     */
+/**
+ * PrivatePaymentsClient — thin typed wrapper around the MagicBlock
+ * Private Payments REST API. All methods return unsigned tx envelopes;
+ * the caller is responsible for signing and submitting.
+ *
+ * Usage:
+ *   const client = new PrivatePaymentsClient({ cluster: 'devnet' });
+ *
+ *   // 1. Deposit into ephemeral rollup
+ *   const depositEnv = await client.buildDeposit(ownerAddress, 1_000_000n);
+ *   const tx = deserializeMBTransaction(depositEnv);
+ *   // ... wallet.signTransaction(tx) → connection.sendRawTransaction(tx.serialize())
+ *
+ *   // 2. Private transfer inside rollup
+ *   const transferEnv = await client.buildPrivateTransfer(from, to, 1_000_000n);
+ *   // submit to ephemeral RPC
+ *
+ *   // 3. Withdraw back to base
+ *   const withdrawEnv = await client.buildWithdraw(ownerAddress, 1_000_000n);
+ *   // submit to ephemeral RPC
+ */
+export class PrivatePaymentsClient {
+  readonly cluster:   MBCluster;
+  readonly mint:      string;
+  readonly validator: string | undefined;
 
-    // STUB: Returns a transaction with a memo instruction representing delegation.
-    const memoData = Buffer.from(
-      JSON.stringify({
-        op: 'delegate',
-        account: accountPubkey.toBase58(),
-        seeds: seeds.map((s) => s.toString('hex')),
-      }),
+  /** Appropriate Solana base RPC for this cluster */
+  readonly baseRpcUrl: string;
+  /** Appropriate MagicBlock ephemeral RPC for this cluster */
+  readonly ephemeralRpcUrl: string;
+
+  constructor(opts: PrivatePaymentsClientOptions = {}) {
+    this.cluster   = opts.cluster   ?? 'devnet';
+    this.validator = opts.validator;
+    // Defaults: USDC on each cluster
+    this.mint = opts.mint ?? (
+      this.cluster === 'mainnet'
+        ? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+        : '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'
     );
-
-    const memoInstruction = new TransactionInstruction({
-      keys: [{ pubkey: payer, isSigner: true, isWritable: false }],
-      // MemoProgram ID — safe to reference as a known program address
-      programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-      data: memoData,
-    });
-
-    const tx = new Transaction().add(memoInstruction);
-    const { blockhash } = await this.connection.getLatestBlockhash();
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = payer;
-    return tx;
+    this.baseRpcUrl     = this.cluster === 'mainnet'
+      ? 'https://api.mainnet-beta.solana.com'
+      : SOLANA_DEVNET_RPC;
+    this.ephemeralRpcUrl = this.cluster === 'mainnet'
+      ? MAGICBLOCK_RPC.mainnet
+      : MAGICBLOCK_RPC.devnet;
   }
 
   /**
-   * Builds a transaction that undelegates `accountPubkey` from the Ephemeral Rollup,
-   * committing its final state back to the Solana base layer.
+   * Build an unsigned deposit transaction.
+   * Moves `amount` of `mint` from the owner's base-layer ATA into the
+   * ephemeral rollup. Submit the signed tx to `envelope.sendTo === 'base'` RPC.
    *
-   * In production this calls `undelegate()` from
-   * `@magicblock-labs/ephemeral-rollups-sdk`.
-   *
-   * @param accountPubkey - The PDA to undelegate.
-   * @param payer         - The fee payer for this transaction.
-   * @returns An unsigned `Transaction` containing the undelegation instruction.
+   * @param owner  - Base-58 owner address
+   * @param amount - Token amount in base units (e.g. 1_000_000 = 1 USDC)
    */
-  async buildUndelegateInstruction(
-    accountPubkey: PublicKey,
-    payer: PublicKey,
-  ): Promise<Transaction> {
-    /*
-     * PRODUCTION IMPLEMENTATION:
-     *
-     *   import { undelegate } from '@magicblock-labs/ephemeral-rollups-sdk';
-     *
-     *   const undelegateIx = await undelegate({
-     *     payer,
-     *     account: accountPubkey,
-     *     ownerProgram: HUSH_PROGRAM_ID,
-     *   });
-     *
-     *   const tx = new Transaction().add(undelegateIx);
-     *   const { blockhash } = await this.connection.getLatestBlockhash();
-     *   tx.recentBlockhash = blockhash;
-     *   tx.feePayer = payer;
-     *   return tx;
-     */
-
-    // STUB: Returns a transaction with a memo instruction representing undelegation.
-    const memoData = Buffer.from(
-      JSON.stringify({
-        op: 'undelegate',
-        account: accountPubkey.toBase58(),
-      }),
-    );
-
-    const memoInstruction = new TransactionInstruction({
-      keys: [{ pubkey: payer, isSigner: true, isWritable: false }],
-      programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-      data: memoData,
+  async buildDeposit(owner: string, amount: bigint): Promise<MBTxEnvelope> {
+    return mbPost<MBTxEnvelope>('/v1/spl/deposit', {
+      owner,
+      amount:             Number(amount),
+      cluster:            this.cluster,
+      mint:               this.mint,
+      ...(this.validator ? { validator: this.validator } : {}),
+      initIfMissing:      true,
+      initVaultIfMissing: true,
+      initAtasIfMissing:  true,
     });
-
-    const tx = new Transaction().add(memoInstruction);
-    const { blockhash } = await this.connection.getLatestBlockhash();
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = payer;
-    return tx;
   }
 
   /**
-   * Executes a private USDC transfer inside the MagicBlock Ephemeral Rollup.
+   * Build an unsigned private transfer transaction.
+   * Transfers `amount` privately inside the ephemeral rollup from `from` to `to`
+   * with no on-chain correlation. Submit the signed tx to the ephemeral RPC.
    *
-   * In production this submits the transfer directly to the MagicBlock RPC
-   * endpoint, which processes it without broadcasting to the Solana base layer
-   * until the commit interval elapses.  The rollup preserves confidentiality
-   * because intermediate states are never published on-chain.
-   *
-   * @param from   - Source shielded account PDA.
-   * @param to     - Destination shielded account PDA.
-   * @param amount - Transfer amount in raw USDC units (6 decimals).
-   * @param payer  - Fee payer (must be the delegate authority).
-   * @returns A mock transaction signature (devnet stub).
+   * @param from    - Source address (base-58)
+   * @param to      - Destination address (base-58)
+   * @param amount  - Token amount in base units
+   * @param memo    - Optional memo string (e.g. grant reference)
    */
-  async executePrivateTransfer(
-    from: PublicKey,
-    to: PublicKey,
+  async buildPrivateTransfer(
+    from:   string,
+    to:     string,
     amount: bigint,
-    payer: PublicKey,
-  ): Promise<string> {
-    /*
-     * PRODUCTION IMPLEMENTATION:
-     *
-     *   // Build the `private_transfer` HUSH instruction targeting the rollup.
-     *   const ix = await this.program.methods
-     *     .privateTransfer(new BN(amount.toString()))
-     *     .accounts({ from, to, payer, ... })
-     *     .instruction();
-     *
-     *   // Send to the MagicBlock RPC (not Solana mainnet/devnet).
-     *   const tx = new Transaction().add(ix);
-     *   tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash;
-     *   tx.feePayer = payer;
-     *   // Caller signs then submits:
-     *   return await this.connection.sendRawTransaction(tx.serialize());
-     */
-
-    // STUB: Return a deterministic mock signature for devnet testing.
-    void from;
-    void to;
-    void amount;
-    void payer;
-    const mockSig = `mock_rollup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    return mockSig;
+    memo?:  string,
+  ): Promise<MBTxEnvelope> {
+    return mbPost<MBTxEnvelope>('/v1/spl/transfer', {
+      from,
+      to,
+      mint:               this.mint,
+      amount:             Number(amount),
+      visibility:         'private',
+      fromBalance:        'ephemeral',
+      toBalance:          'ephemeral',
+      cluster:            this.cluster,
+      ...(this.validator ? { validator: this.validator } : {}),
+      ...(memo           ? { memo }                       : {}),
+      initAtasIfMissing:  true,
+    });
   }
 
   /**
-   * Fetches the private USDC balance of a shielded account from the rollup state.
+   * Build an unsigned public transfer transaction (visible on-chain).
+   * Used for settlement relay: final payout from ephemeral rollup to NPO wallet.
    *
-   * In production this queries the MagicBlock RPC, which may reflect
-   * uncommitted rollup state not yet visible on the Solana base layer.
-   *
-   * @param accountPubkey - The shielded account PDA to query.
-   * @returns The raw USDC balance (6 decimals) as a bigint.
+   * @param from    - Source address (base-58), must have ephemeral balance
+   * @param to      - Destination NPO / charity address (base-58)
+   * @param amount  - Token amount in base units
+   * @param memo    - Grant reference / NPO memo
    */
-  async getPrivateBalance(accountPubkey: PublicKey): Promise<bigint> {
-    /*
-     * PRODUCTION IMPLEMENTATION:
-     *
-     *   // Fetch account data from the MagicBlock RPC (rollup state).
-     *   const info = await this.connection.getAccountInfo(accountPubkey);
-     *   if (!info) return 0n;
-     *
-     *   // Deserialize using the HUSH IDL / Anchor coder.
-     *   const decoded = program.coder.accounts.decode('ShieldedAccount', info.data);
-     *   return BigInt(decoded.balance.toString());
-     */
+  async buildSettlementTransfer(
+    from:   string,
+    to:     string,
+    amount: bigint,
+    memo?:  string,
+  ): Promise<MBTxEnvelope> {
+    return mbPost<MBTxEnvelope>('/v1/spl/transfer', {
+      from,
+      to,
+      mint:              this.mint,
+      amount:            Number(amount),
+      visibility:        'public',
+      fromBalance:       'ephemeral',
+      toBalance:         'base',
+      cluster:           this.cluster,
+      ...(this.validator ? { validator: this.validator } : {}),
+      ...(memo           ? { memo }                      : {}),
+      initAtasIfMissing: true,
+    });
+  }
 
-    // STUB: Returns zero for devnet / unit-test usage.
-    void accountPubkey;
-    return 0n;
+  /**
+   * Build an unsigned withdrawal transaction.
+   * Moves funds from the ephemeral rollup back to the owner's base-layer ATA.
+   * Submit the signed tx to the ephemeral RPC.
+   *
+   * @param owner  - Base-58 owner address
+   * @param amount - Token amount in base units
+   */
+  async buildWithdraw(owner: string, amount: bigint): Promise<MBTxEnvelope> {
+    return mbPost<MBTxEnvelope>('/v1/spl/withdraw', {
+      owner,
+      amount:            Number(amount),
+      cluster:           this.cluster,
+      mint:              this.mint,
+      ...(this.validator ? { validator: this.validator } : {}),
+      initAtasIfMissing: true,
+    });
+  }
+
+  /**
+   * Query the private (ephemeral rollup) token balance for an address.
+   *
+   * @param address - Base-58 address to query
+   */
+  async getPrivateBalance(address: string): Promise<MBPrivateBalance> {
+    return mbGet<MBPrivateBalance>('/v1/spl/private-balance', {
+      address,
+      cluster: this.cluster,
+      mint:    this.mint,
+    });
+  }
+
+  /**
+   * Query the public (base-layer) token balance for an address.
+   * Convenience wrapper — same endpoint, location = 'base'.
+   */
+  async getPublicBalance(address: string): Promise<MBPrivateBalance> {
+    return mbGet<MBPrivateBalance>('/v1/spl/balance', {
+      address,
+      cluster: this.cluster,
+      mint:    this.mint,
+    });
+  }
+
+  /**
+   * Sign an MBTxEnvelope with a browser wallet and submit to the correct RPC.
+   * `signTransaction` should be `wallet.signTransaction` from the Wallet Standard.
+   *
+   * @param envelope         - Unsigned tx from any build* method
+   * @param signTransaction  - Browser wallet signing function
+   */
+  async signAndSubmit(
+    envelope:        MBTxEnvelope,
+    signTransaction: (tx: import('@solana/web3.js').Transaction) => Promise<import('@solana/web3.js').Transaction>,
+  ): Promise<string> {
+    const tx      = deserializeMBTransaction(envelope);
+    const signed  = await signTransaction(tx);
+    const rpcUrl  = envelope.sendTo === 'base' ? this.baseRpcUrl : this.ephemeralRpcUrl;
+    const conn    = new Connection(rpcUrl, 'confirmed');
+    return conn.sendRawTransaction(signed.serialize(), { skipPreflight: false });
   }
 }
 
-// ---------------------------------------------------------------------------
-// Factory helpers
-// ---------------------------------------------------------------------------
+// ── Factory ───────────────────────────────────────────────────────────────────
 
 /**
- * Creates a new `MagicBlockSession` connected to the specified RPC endpoint.
- *
- * @param rpcUrl - Optional MagicBlock RPC URL override. Defaults to devnet.
+ * Create a PrivatePaymentsClient for the given cluster.
+ * This is the primary entry point for HUSH server-side and frontend integration.
  */
-export function createPrivateSession(rpcUrl?: string): MagicBlockSession {
-  return new MagicBlockSession(rpcUrl);
-}
-
-/**
- * Returns a new `Connection` pointed at the given rollup RPC endpoint.
- *
- * Use this to switch an existing flow from the Solana base layer to the
- * MagicBlock Ephemeral Rollup mid-session (e.g. after delegation succeeds).
- *
- * @param _connection - Existing base-layer connection (unused in stub; kept for API symmetry).
- * @param rollupRpc   - MagicBlock rollup RPC endpoint URL.
- * @returns A new `Connection` targeting the rollup.
- */
-export function routeToRollup(
-  _connection: Connection,
-  rollupRpc: string,
-): Connection {
-  return new Connection(rollupRpc, 'confirmed');
+export function createPrivatePaymentsClient(
+  opts?: PrivatePaymentsClientOptions,
+): PrivatePaymentsClient {
+  return new PrivatePaymentsClient(opts);
 }

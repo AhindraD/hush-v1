@@ -1,381 +1,223 @@
 /**
- * High-level HUSH program client.
+ * hush-client.ts — High-level HUSH client that composes Umbra + MagicBlock.
  *
- * Wraps the Anchor-generated program to provide a typed, ergonomic interface
- * for interacting with the HUSH on-chain program.  All methods return
- * Solana transaction signatures on success and throw typed `HushClientError`
- * instances on failure.
+ * This is the primary API surface for the HUSH frontend and server. It wires:
+ *  - @umbra-privacy/sdk  → stealth ingress (encrypted deposit / UTXO sends)
+ *  - MagicBlock PPA REST → private ephemeral rollup transfers + settlement
+ *  - @coral-xyz/anchor   → on-chain program interaction
  */
 
-import { AnchorProvider, Program, BN, web3 } from '@coral-xyz/anchor';
-import {
-  PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-} from '@solana/web3.js';
-import {
-  getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
+import { Connection, PublicKey } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 import {
   HUSH_PROGRAM_ID,
-  HUSH_VAULT_SEED,
-  SHIELDED_ACCOUNT_SEED,
-  GRANT_SEED,
+  USDC_MINT_DEVNET,
+  USDC_MINT_MAINNET,
+  SOLANA_DEVNET_RPC,
 } from './constants';
+import {
+  HushUmbraSession,
+  type UmbraDepositResult,
+  type UmbraWithdrawResult,
+  type UmbraUtxoResult,
+} from './umbra';
+import {
+  PrivatePaymentsClient,
+  createPrivatePaymentsClient,
+  type MBTxEnvelope,
+  type MBPrivateBalance,
+} from './magicblock';
 
-// ---------------------------------------------------------------------------
-// Typed error
-// ---------------------------------------------------------------------------
+export type HushNetwork = 'mainnet' | 'devnet';
 
-/** Error codes surfaced by `HushClient` methods. */
-export type HushClientErrorCode =
-  | 'INSUFFICIENT_BALANCE'
-  | 'ACCOUNT_NOT_FOUND'
-  | 'INVALID_STEALTH_KEY'
-  | 'INVALID_GRANT_ID'
-  | 'ANCHOR_ERROR'
-  | 'UNKNOWN';
-
-/** Typed error thrown by `HushClient` methods. */
-export class HushClientError extends Error {
-  constructor(
-    public readonly code: HushClientErrorCode,
-    message: string,
-    public readonly cause?: unknown,
-  ) {
-    super(message);
-    this.name = 'HushClientError';
-  }
+export interface HushClientOptions {
+  network:  HushNetwork;
+  rpcUrl?:  string;
+  rpcWsUrl?: string;
+  /** Wallet signer — pass an Umbra-compatible signer (createInMemorySigner or wallet shim) */
+  signer?:  unknown;
 }
-
-// ---------------------------------------------------------------------------
-// Parameter shapes
-// ---------------------------------------------------------------------------
-
-/** Parameters for `shieldDeposit`. */
-export interface ShieldDepositParams {
-  /** USDC amount to deposit in raw units (6 decimals). */
-  amount: BN;
-  /** 32-byte stealth public key (Ed25519) of the recipient shielded account. */
-  stealthPubkey: Uint8Array;
-  /** Packed `[nonce || ciphertext]` encrypted random from `generateStealthAddress`. */
-  encryptedRandom: Uint8Array;
-  /** USDC mint public key (typically `USDC_MINT_DEVNET` on devnet). */
-  usdcMint: PublicKey;
-}
-
-/** Parameters for `adviseGrant`. */
-export interface AdviseGrantParams {
-  /** 32-byte stealth public key of the donor initiating the grant. */
-  stealthPubkey: Uint8Array;
-  /** USDC grant amount in raw units (6 decimals). */
-  amount: BN;
-  /** Destination charity wallet public key. */
-  charityWallet: PublicKey;
-  /** 32-byte SHA-256 hash of the off-chain memo. */
-  memoHash: Uint8Array;
-  /** Monotonically increasing grant ID for this stealth key. */
-  grantId: BN;
-}
-
-// ---------------------------------------------------------------------------
-// HushClient
-// ---------------------------------------------------------------------------
 
 /**
- * High-level client for the HUSH on-chain program.
+ * HushClient — unified entry point for the HUSH SDK.
  *
- * Instantiate once per session and reuse across operations.
+ * Compose Umbra (stealth ingress) and MagicBlock (shielded ephemeral rollup)
+ * into a single coherent API surface.
  *
- * @example
- * ```typescript
- * import { AnchorProvider } from '@coral-xyz/anchor';
- * import { HushClient } from '@hush/sdk';
- * import idl from '../idl/hush.json';
- *
- * const provider = AnchorProvider.env();
- * const client = new HushClient(provider, idl);
- *
- * const sig = await client.shieldDeposit({
- *   amount: new BN(1_000_000), // 1 USDC
- *   stealthPubkey,
- *   encryptedRandom,
- *   usdcMint: USDC_MINT_DEVNET,
- * });
- * ```
+ * Usage:
+ *   const client = await HushClient.create({ network: 'devnet', signer });
+ *   await client.registerUmbra();
+ *   const deposit = await client.shieldDeposit(1_000_000n); // 1 USDC
+ *   const grant   = await client.adviseGrant(npoAddress, 500_000n, 'Education');
  */
 export class HushClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly program: Program<any>;
-  private readonly provider: AnchorProvider;
+  readonly network:   HushNetwork;
+  readonly rpcUrl:    string;
+  readonly rpcWsUrl:  string;
+  readonly connection: Connection;
+  readonly mbClient:  PrivatePaymentsClient;
 
-  /**
-   * @param provider - Anchor provider (wallet + connection).
-   * @param idl      - The HUSH program IDL JSON object.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(provider: AnchorProvider, idl: any) {
-    this.provider = provider;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.program = new Program(idl, HUSH_PROGRAM_ID, provider) as Program<any>;
+  private umbraSession?: HushUmbraSession;
+
+  private constructor(
+    opts: Required<HushClientOptions> & { rpcWsUrl: string },
+    mbClient: PrivatePaymentsClient,
+  ) {
+    this.network    = opts.network;
+    this.rpcUrl     = opts.rpcUrl;
+    this.rpcWsUrl   = opts.rpcWsUrl;
+    this.connection = new Connection(opts.rpcUrl, 'confirmed');
+    this.mbClient   = mbClient;
   }
 
-  // ---------------------------------------------------------------------------
-  // PDA helpers
-  // ---------------------------------------------------------------------------
+  /** Create and initialise a HushClient (does NOT auto-register Umbra). */
+  static async create(opts: HushClientOptions): Promise<HushClient> {
+    const rpcUrl  = opts.rpcUrl   ?? SOLANA_DEVNET_RPC;
+    const rpcWsUrl = opts.rpcWsUrl ?? rpcUrl.replace('https://', 'wss://').replace('http://', 'ws://');
 
-  /**
-   * Derives the global `HushVault` PDA and its bump seed.
-   *
-   * The vault is a singleton account seeded with `HUSH_VAULT_SEED`.
-   *
-   * @returns `[vaultPda, bump]`
-   */
-  getVaultPda(): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-      [HUSH_VAULT_SEED],
-      HUSH_PROGRAM_ID,
-    );
-  }
+    const mbClient = createPrivatePaymentsClient({ cluster: opts.network });
 
-  /**
-   * Derives the `ShieldedAccount` PDA for a given stealth public key.
-   *
-   * Seeds: `[SHIELDED_ACCOUNT_SEED, stealthPubkey]`
-   *
-   * @param stealthPubkey - 32-byte stealth public key.
-   * @returns `[shieldedAccountPda, bump]`
-   */
-  getShieldedAccountPda(stealthPubkey: Uint8Array): [PublicKey, number] {
-    if (stealthPubkey.length !== 32) {
-      throw new HushClientError(
-        'INVALID_STEALTH_KEY',
-        `getShieldedAccountPda: expected 32 bytes, got ${stealthPubkey.length}`,
-      );
-    }
-    return PublicKey.findProgramAddressSync(
-      [SHIELDED_ACCOUNT_SEED, stealthPubkey],
-      HUSH_PROGRAM_ID,
-    );
-  }
-
-  /**
-   * Derives the `GrantRequest` PDA for a donor's specific grant ID.
-   *
-   * Seeds: `[GRANT_SEED, donor.toBuffer(), grantId.toBuffer('le', 8)]`
-   *
-   * @param donor   - The donor's on-chain public key (the signer of the advisory tx).
-   * @param grantId - The monotonically increasing grant ID (BN).
-   * @returns `[grantPda, bump]`
-   */
-  getGrantPda(donor: PublicKey, grantId: BN): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-      [GRANT_SEED, donor.toBuffer(), grantId.toBuffer('le', 8)],
-      HUSH_PROGRAM_ID,
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Instructions
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Deposits USDC from the signer's wallet into a shielded account.
-   *
-   * On-chain instruction: `shield_deposit`
-   *
-   * The caller must have already:
-   *  1. Generated a stealth address via `generateStealthAddress()`.
-   *  2. Approved the vault's USDC token account for the deposit amount.
-   *
-   * @param params - {@link ShieldDepositParams}
-   * @returns The confirmed Solana transaction signature.
-   * @throws {HushClientError} On anchor errors or missing accounts.
-   */
-  async shieldDeposit(params: ShieldDepositParams): Promise<string> {
-    const { amount, stealthPubkey, encryptedRandom, usdcMint } = params;
-
-    if (stealthPubkey.length !== 32) {
-      throw new HushClientError('INVALID_STEALTH_KEY', 'stealthPubkey must be 32 bytes');
-    }
-
-    const [vaultPda] = this.getVaultPda();
-    const [shieldedAccountPda] = this.getShieldedAccountPda(stealthPubkey);
-
-    // Derive the vault's USDC token account (the ATA owned by the vault PDA).
-    const vaultUsdcAta = await getAssociatedTokenAddress(usdcMint, vaultPda, true);
-
-    // Derive the signer's USDC token account.
-    const signerUsdcAta = await getAssociatedTokenAddress(
-      usdcMint,
-      this.provider.wallet.publicKey,
+    const client = new HushClient(
+      { network: opts.network, rpcUrl, rpcWsUrl, signer: opts.signer },
+      mbClient,
     );
 
-    try {
-      const sig = await this.program.methods
-        .shieldDeposit(
-          amount,
-          Array.from(stealthPubkey),
-          Array.from(encryptedRandom),
-        )
-        .accounts({
-          vault: vaultPda,
-          shieldedAccount: shieldedAccountPda,
-          signerUsdcAta,
-          vaultUsdcAta,
-          usdcMint,
-          signer: this.provider.wallet.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: SYSVAR_RENT_PUBKEY,
-        })
-        .rpc();
-
-      return sig;
-    } catch (err) {
-      throw this.wrapAnchorError(err);
-    }
-  }
-
-  /**
-   * Submits a grant advisory from a donor's shielded balance.
-   *
-   * On-chain instruction: `advise_grant`
-   *
-   * The shielded account must have sufficient balance to cover `amount`.
-   * The grant is created in `Pending` status and requires admin approval
-   * before it can be settled.
-   *
-   * @param params - {@link AdviseGrantParams}
-   * @returns The confirmed Solana transaction signature.
-   * @throws {HushClientError} On anchor errors, insufficient balance, or invalid params.
-   */
-  async adviseGrant(params: AdviseGrantParams): Promise<string> {
-    const { stealthPubkey, amount, charityWallet, memoHash, grantId } = params;
-
-    if (stealthPubkey.length !== 32) {
-      throw new HushClientError('INVALID_STEALTH_KEY', 'stealthPubkey must be 32 bytes');
-    }
-    if (memoHash.length !== 32) {
-      throw new HushClientError(
-        'ANCHOR_ERROR',
-        `memoHash must be 32 bytes (SHA-256), got ${memoHash.length}`,
+    if (opts.signer) {
+      client.umbraSession = await HushUmbraSession.create(
+        opts.signer,
+        opts.network,
+        rpcUrl,
+        rpcWsUrl,
       );
     }
 
-    const [vaultPda] = this.getVaultPda();
-    const [shieldedAccountPda] = this.getShieldedAccountPda(stealthPubkey);
-    const [grantPda] = this.getGrantPda(this.provider.wallet.publicKey, grantId);
-
-    try {
-      const sig = await this.program.methods
-        .adviseGrant(
-          Array.from(stealthPubkey),
-          amount,
-          Array.from(memoHash),
-          grantId,
-        )
-        .accounts({
-          vault: vaultPda,
-          shieldedAccount: shieldedAccountPda,
-          grant: grantPda,
-          charityWallet,
-          signer: this.provider.wallet.publicKey,
-          systemProgram: SystemProgram.programId,
-          rent: SYSVAR_RENT_PUBKEY,
-        })
-        .rpc();
-
-      return sig;
-    } catch (err) {
-      throw this.wrapAnchorError(err);
-    }
+    return client;
   }
 
-  // ---------------------------------------------------------------------------
-  // Account fetches
-  // ---------------------------------------------------------------------------
+  // ── Umbra flows ─────────────────────────────────────────────────────────────
 
   /**
-   * Fetches and deserializes the global `HushVault` account.
-   *
-   * @returns The decoded vault account data.
-   * @throws {HushClientError} If the account does not exist or cannot be decoded.
+   * Register the wallet with Umbra on-chain.
+   * Must be called before any deposit/UTXO operations.
+   * Safe to call repeatedly (handles key rotation).
    */
-  async fetchVault(): Promise<unknown> {
-    const [vaultPda] = this.getVaultPda();
-    try {
-      const vault = await this.program.account['hushVault'].fetch(vaultPda);
-      return vault;
-    } catch (err) {
-      throw this.wrapAnchorError(err, 'ACCOUNT_NOT_FOUND');
-    }
+  async registerUmbra(): Promise<string[]> {
+    this.requireUmbra();
+    return this.umbraSession!.register();
   }
 
   /**
-   * Fetches and deserializes a `ShieldedAccount` for a given stealth key.
+   * Deposit USDC from the user's public wallet into Umbra encrypted balance.
+   * This is Step 1 of the HUSH deposit flow — stealth ingress.
    *
-   * @param stealthPubkey - The 32-byte stealth public key.
-   * @returns The decoded shielded account data.
-   * @throws {HushClientError} If the account does not exist or cannot be decoded.
+   * @param amount - Amount in USDC base units (1 USDC = 1_000_000)
    */
-  async fetchShieldedAccount(stealthPubkey: Uint8Array): Promise<unknown> {
-    const [shieldedAccountPda] = this.getShieldedAccountPda(stealthPubkey);
-    try {
-      const account = await this.program.account['shieldedAccount'].fetch(shieldedAccountPda);
-      return account;
-    } catch (err) {
-      throw this.wrapAnchorError(err, 'ACCOUNT_NOT_FOUND');
-    }
+  async shieldDeposit(amount: bigint): Promise<UmbraDepositResult> {
+    this.requireUmbra();
+    const mint = this.network === 'mainnet'
+      ? USDC_MINT_MAINNET.toBase58()
+      : USDC_MINT_DEVNET.toBase58();
+    return this.umbraSession!.deposit(mint, amount);
   }
 
   /**
-   * Fetches and deserializes a `GrantRequest` account.
+   * Withdraw USDC from Umbra encrypted balance back to public wallet.
    *
-   * @param donor   - The donor's on-chain public key.
-   * @param grantId - The monotonically increasing grant ID (BN).
-   * @returns The decoded grant request data.
-   * @throws {HushClientError} If the grant does not exist or cannot be decoded.
+   * @param amount - Amount in USDC base units
    */
-  async fetchGrant(donor: PublicKey, grantId: BN): Promise<unknown> {
-    const [grantPda] = this.getGrantPda(donor, grantId);
-    try {
-      const grant = await this.program.account['grantRequest'].fetch(grantPda);
-      return grant;
-    } catch (err) {
-      throw this.wrapAnchorError(err, 'ACCOUNT_NOT_FOUND');
-    }
+  async withdrawFromShield(amount: bigint): Promise<UmbraWithdrawResult> {
+    this.requireUmbra();
+    const mint = this.network === 'mainnet'
+      ? USDC_MINT_MAINNET.toBase58()
+      : USDC_MINT_DEVNET.toBase58();
+    return this.umbraSession!.withdraw(mint, amount);
   }
 
-  // ---------------------------------------------------------------------------
-  // Internal helpers
-  // ---------------------------------------------------------------------------
+  // ── MagicBlock Private Payments flows ───────────────────────────────────────
 
   /**
-   * Wraps an unknown thrown value into a typed `HushClientError`.
+   * Build a deposit transaction into the MagicBlock ephemeral rollup.
+   * Step 2 of HUSH: move shielded funds into the private rollup for yield + grants.
    *
-   * Inspects the error for Anchor-specific codes (e.g. `InsufficientFunds`)
-   * and maps them to `HushClientErrorCode` values where possible.
+   * @param ownerAddress - Base-58 address of the fund owner
+   * @param amount       - USDC base units
    */
-  private wrapAnchorError(
-    err: unknown,
-    fallbackCode: HushClientErrorCode = 'ANCHOR_ERROR',
-  ): HushClientError {
-    if (err instanceof HushClientError) return err;
+  async buildRollupDeposit(ownerAddress: string, amount: bigint): Promise<MBTxEnvelope> {
+    return this.mbClient.buildDeposit(ownerAddress, amount);
+  }
 
-    const message = err instanceof Error ? err.message : String(err);
+  /**
+   * Build a private transfer inside the MagicBlock ephemeral rollup.
+   * Used for internal rebalancing and yield moves — completely off-chain.
+   *
+   * @param from   - Source address
+   * @param to     - Destination address
+   * @param amount - USDC base units
+   * @param memo   - Optional reference string
+   */
+  async buildPrivateRollupTransfer(
+    from:   string,
+    to:     string,
+    amount: bigint,
+    memo?:  string,
+  ): Promise<MBTxEnvelope> {
+    return this.mbClient.buildPrivateTransfer(from, to, amount, memo);
+  }
 
-    // Attempt to extract a known Anchor / program error code.
-    if (message.includes('InsufficientFunds') || message.includes('insufficient')) {
-      return new HushClientError('INSUFFICIENT_BALANCE', message, err);
+  /**
+   * Advise a grant — create a private UTXO to the NPO via Umbra (anonymous send).
+   * The NPO can claim the UTXO with no on-chain link to the donor.
+   *
+   * Alternatively, use buildSettlementTransfer() for a MagicBlock-routed payout.
+   *
+   * @param npoAddress - Recipient NPO wallet address
+   * @param amount     - USDC base units
+   * @param memo       - Grant purpose / reference
+   */
+  async adviseGrant(
+    npoAddress: string,
+    amount:     bigint,
+    memo?:      string,
+  ): Promise<UmbraUtxoResult> {
+    this.requireUmbra();
+    const mint = this.network === 'mainnet'
+      ? USDC_MINT_MAINNET.toBase58()
+      : USDC_MINT_DEVNET.toBase58();
+    return this.umbraSession!.sendPrivateGrant(npoAddress, mint, amount);
+  }
+
+  /**
+   * Build a settlement transfer from rollup → NPO base wallet.
+   * Used by the SettlementRelay server-side agent for on-chain grant settlement.
+   *
+   * @param relayAddress - The HUSH settlement relay address (ephemeral balance holder)
+   * @param npoAddress   - Final recipient NPO address
+   * @param amount       - USDC base units
+   * @param memo         - Grant reference / ID
+   */
+  async buildGrantSettlement(
+    relayAddress: string,
+    npoAddress:   string,
+    amount:       bigint,
+    memo?:        string,
+  ): Promise<MBTxEnvelope> {
+    return this.mbClient.buildSettlementTransfer(relayAddress, npoAddress, amount, memo);
+  }
+
+  /**
+   * Query the ephemeral rollup (private) balance for an address.
+   */
+  async getPrivateBalance(address: string): Promise<MBPrivateBalance> {
+    return this.mbClient.getPrivateBalance(address);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  private requireUmbra(): void {
+    if (!this.umbraSession) {
+      throw new Error(
+        'HushClient: no Umbra session — pass a signer to HushClient.create()',
+      );
     }
-    if (message.includes('AccountNotFound') || message.includes('Account does not exist')) {
-      return new HushClientError('ACCOUNT_NOT_FOUND', message, err);
-    }
-
-    return new HushClientError(fallbackCode, message, err);
   }
 }

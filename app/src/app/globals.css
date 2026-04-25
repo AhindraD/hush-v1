@@ -100,7 +100,7 @@
   }
 
   html {
-    @apply dark;
+    /* dark class is set on <html> in layout.tsx — do not use @apply dark */
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -352,34 +352,19 @@
 }
 
 /* ============================================================
-   Wallet adapter overrides
+   Keyframe definitions
    ============================================================ */
-.wallet-adapter-button {
-  font-family: var(--font-satoshi) !important;
-  font-weight: 600 !important;
-  font-size: 0.875rem !important;
-  border-radius: var(--radius-sm) !important;
-  background: linear-gradient(135deg, #7c3aed 0%, var(--hush-violet) 100%) !important;
-  transition: opacity 0.15s, box-shadow 0.15s, transform 0.1s !important;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
-  padding: 0.5rem 1rem !important;
-  height: auto !important;
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
-.wallet-adapter-button:hover {
-  opacity: 0.92 !important;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
-  transform: translateY(-1px) !important;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.wallet-adapter-modal-wrapper {
-  font-family: var(--font-satoshi) !important;
-  background-color: var(--bg-elevated) !important;
-  border: 1px solid var(--border-default) !important;
-  border-radius: var(--radius-lg) !important;
-}
-
-.wallet-adapter-modal-title {
-  font-family: var(--font-cabinet) !important;
-  font-weight: 700 !important;
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

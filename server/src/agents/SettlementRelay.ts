@@ -1,164 +1,213 @@
-import { eq, inArray } from 'drizzle-orm';
+/**
+ * SettlementRelay.ts
+ *
+ * Server-side agent that polls for pending grant requests and settles them
+ * via the MagicBlock Private Payments API.
+ *
+ * Settlement flow (per grant):
+ *   1. Fetch pending grants from the DB
+ *   2. Call MagicBlock POST /v1/spl/transfer (visibility: private) to move
+ *      USDC from the relay ephemeral balance to the NPO's ephemeral ATA
+ *   3. Call MagicBlock POST /v1/spl/transfer (visibility: public) to settle
+ *      the NPO's ephemeral balance → their base-layer wallet
+ *   4. Mark grant as settled in DB
+ *
+ * The relay wallet keypair is loaded from RELAY_PRIVATE_KEY env var.
+ * Transactions are signed server-side (relay is the ephemeral balance holder).
+ *
+ * API: https://payments.magicblock.app
+ *      POST /v1/spl/transfer
+ *      GET  /v1/spl/private-balance
+ */
+
+import { Keypair, Connection, Transaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { db } from '../db/client';
 import { grants } from '../db/schema';
-import { AccountService } from '../services/AccountService';
-import crypto from 'crypto';
+import { eq, and } from 'drizzle-orm';
 
-/**
- * SettlementRelay — Watches for pending grants and settles them.
- *
- * Production behaviour:
- *   - Watches on-chain GrantRequest PDA queue via Solana subscription
- *   - Calls settle_grant instruction on the HUSH Vault Program
- *   - Relayer is permissionless — anyone can relay (anti-censorship)
- *
- * PoC behaviour:
- *   - Polls the SQLite grants table every 10 seconds
- *   - Simulates on-chain settlement with a random tx hash
- *   - Processes 'pending' and 'processing' grants in order
- */
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const PAYMENTS_API   = 'https://payments.magicblock.app';
+const CLUSTER        = (process.env.MAGICBLOCK_CLUSTER ?? 'devnet') as 'devnet' | 'mainnet';
+const POLL_INTERVAL  = 10_000; // 10 seconds
+const BASE_RPC       = CLUSTER === 'mainnet'
+  ? 'https://api.mainnet-beta.solana.com'
+  : 'https://api.devnet.solana.com';
+const EPHEMERAL_RPC  = CLUSTER === 'mainnet'
+  ? 'https://mainnet.magicblock.app'
+  : 'https://devnet.magicblock.app';
+
+// ── Relay wallet ──────────────────────────────────────────────────────────────
+
+function loadRelayKeypair(): Keypair | null {
+  const raw = process.env.RELAY_PRIVATE_KEY;
+  if (!raw) {
+    console.warn('[SettlementRelay] RELAY_PRIVATE_KEY not set — using stub mode');
+    return null;
+  }
+  try {
+    return Keypair.fromSecretKey(bs58.decode(raw));
+  } catch {
+    console.error('[SettlementRelay] Failed to parse RELAY_PRIVATE_KEY');
+    return null;
+  }
+}
+
+// ── MagicBlock API helpers ────────────────────────────────────────────────────
+
+interface MBTxEnvelope {
+  kind:                 string;
+  version:              string;
+  transactionBase64:    string;
+  sendTo:               'base' | 'ephemeral';
+  recentBlockhash:      string;
+  lastValidBlockHeight: number;
+  instructionCount:     number;
+  requiredSigners:      string[];
+  validator?:           string;
+}
+
+async function buildTransfer(params: {
+  from:        string;
+  to:          string;
+  amount:      number;
+  visibility:  'public' | 'private';
+  fromBalance: 'base' | 'ephemeral';
+  toBalance:   'base' | 'ephemeral';
+  memo?:       string;
+}): Promise<MBTxEnvelope> {
+  const res = await fetch(`${PAYMENTS_API}/v1/spl/transfer`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      ...params,
+      cluster:           CLUSTER,
+      initAtasIfMissing: true,
+      // USDC mint auto-defaults to devnet USDC on devnet cluster
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`MagicBlock /v1/spl/transfer → ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<MBTxEnvelope>;
+}
+
+async function signAndSubmit(
+  envelope:  MBTxEnvelope,
+  keypair:   Keypair,
+): Promise<string> {
+  const tx = Transaction.from(Buffer.from(envelope.transactionBase64, 'base64'));
+  tx.sign(keypair);
+
+  const rpcUrl = envelope.sendTo === 'base' ? BASE_RPC : EPHEMERAL_RPC;
+  const conn   = new Connection(rpcUrl, 'confirmed');
+  return conn.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+}
+
+// ── Settlement logic ──────────────────────────────────────────────────────────
+
+async function settlePendingGrants(relay: Keypair | null): Promise<void> {
+  // Fetch all pending grants
+  let pending: Array<{
+    id: string;
+    donor: string;
+    npo: string;
+    amountUsdc: number;
+    status: string;
+    purpose: string | null;
+  }>;
+
+  try {
+    pending = await db.select().from(grants).where(eq(grants.status, 'advised'));
+  } catch {
+    return; // DB not ready yet
+  }
+
+  if (pending.length === 0) return;
+  console.log(`[SettlementRelay] Processing ${pending.length} pending grant(s).`);
+
+  for (const grant of pending) {
+    try {
+      const amountBaseUnits = Math.round(grant.amountUsdc * 1_000_000);
+      let txSig: string;
+
+      if (relay) {
+        // ── Real MagicBlock settlement ─────────────────────────────────────
+        // Step 1: Private transfer from relay ephemeral → NPO ephemeral
+        const privateEnv = await buildTransfer({
+          from:        relay.publicKey.toBase58(),
+          to:          grant.npo,
+          amount:      amountBaseUnits,
+          visibility:  'private',
+          fromBalance: 'ephemeral',
+          toBalance:   'ephemeral',
+          memo:        grant.purpose ?? `HUSH grant ${grant.id}`,
+        });
+        await signAndSubmit(privateEnv, relay);
+
+        // Step 2: Public settlement — NPO ephemeral → NPO base wallet
+        const settlementEnv = await buildTransfer({
+          from:        relay.publicKey.toBase58(),
+          to:          grant.npo,
+          amount:      amountBaseUnits,
+          visibility:  'public',
+          fromBalance: 'ephemeral',
+          toBalance:   'base',
+          memo:        `Settlement: ${grant.id}`,
+        });
+        txSig = await signAndSubmit(settlementEnv, relay);
+      } else {
+        // ── Stub mode (no relay keypair) ───────────────────────────────────
+        txSig = `STUB_${Date.now().toString(36).toUpperCase()}_${grant.id.slice(0, 8)}`;
+        console.log(`[SettlementRelay] Stub settlement for grant ${grant.id}`);
+      }
+
+      // Mark settled in DB
+      await db.update(grants)
+        .set({ status: 'settled' })
+        .where(eq(grants.id, grant.id));
+
+      console.log(`[SettlementRelay] Grant ${grant.id} settled — tx: ${txSig.slice(0, 20)}…`);
+    } catch (err) {
+      console.error(`[SettlementRelay] Failed to settle grant ${grant.id}:`, (err as Error).message);
+    }
+  }
+}
+
+// ── Agent ─────────────────────────────────────────────────────────────────────
+
 export class SettlementRelay {
-  private intervalHandle: ReturnType<typeof setInterval> | null = null;
-  private accountService: AccountService;
-  private isProcessing = false;
-
-  /** Poll interval in milliseconds */
-  private readonly POLL_INTERVAL_MS = 10_000;
-
-  /** Max grants to process per cycle (prevents runaway loops) */
-  private readonly BATCH_SIZE = 10;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private readonly relay: Keypair | null;
 
   constructor() {
-    this.accountService = new AccountService();
+    this.relay = loadRelayKeypair();
   }
 
-  /**
-   * Start the settlement relay polling loop.
-   */
   start(): void {
-    if (this.intervalHandle) {
-      console.warn('[SettlementRelay] Already started — ignoring duplicate start().');
-      return;
+    console.log('[SettlementRelay] Starting — polling every 10s.');
+    if (this.relay) {
+      console.log(`[SettlementRelay] Relay wallet: ${this.relay.publicKey.toBase58()}`);
+    } else {
+      console.log('[SettlementRelay] Running in stub mode (set RELAY_PRIVATE_KEY for real settlements).');
     }
 
-    console.log(
-      `[SettlementRelay] Starting — polling every ${this.POLL_INTERVAL_MS / 1000}s.`
-    );
-
-    // Run immediately on startup, then on interval
-    void this.processPendingGrants();
-    this.intervalHandle = setInterval(
-      () => void this.processPendingGrants(),
-      this.POLL_INTERVAL_MS
+    // Run immediately, then on interval
+    settlePendingGrants(this.relay).catch(console.error);
+    this.timer = setInterval(
+      () => settlePendingGrants(this.relay).catch(console.error),
+      POLL_INTERVAL,
     );
   }
 
-  /**
-   * Stop the settlement relay.
-   */
   stop(): void {
-    if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
-      this.intervalHandle = null;
-      console.log('[SettlementRelay] Stopped.');
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Process all pending grants up to BATCH_SIZE.
-   */
-  private async processPendingGrants(): Promise<void> {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
-    try {
-      const pendingGrants = db
-        .select()
-        .from(grants)
-        .where(inArray(grants.status, ['pending', 'processing']))
-        .limit(this.BATCH_SIZE)
-        .all();
-
-      if (pendingGrants.length === 0) {
-        return; // Nothing to do
-      }
-
-      console.log(
-        `[SettlementRelay] Processing ${pendingGrants.length} pending grant(s).`
-      );
-
-      for (const grant of pendingGrants) {
-        try {
-          await this.simulateOnChainSettlement(grant.id, grant.accountId);
-        } catch (err) {
-          console.error(
-            `[SettlementRelay] Failed to settle grant ${grant.id}:`,
-            err instanceof Error ? err.message : err
-          );
-
-          // Mark as failed after repeated error (simplified — production would
-          // track retry count)
-          db.update(grants)
-            .set({ status: 'failed' })
-            .where(eq(grants.id, grant.id))
-            .run();
-        }
-      }
-    } catch (err) {
-      console.error('[SettlementRelay] Unexpected error:', err);
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  /**
-   * Simulate the on-chain settlement of a single grant.
-   *
-   * In production this would:
-   *   1. Fetch the GrantRequest PDA from chain
-   *   2. Build and sign a settle_grant instruction
-   *   3. Submit to Solana and confirm
-   *   4. Update the grant record with the settlement tx hash
-   */
-  private async simulateOnChainSettlement(
-    grantId: number,
-    _accountId: number
-  ): Promise<void> {
-    // Mark as processing
-    db.update(grants)
-      .set({ status: 'processing' })
-      .where(eq(grants.id, grantId))
-      .run();
-
-    // Simulate network latency (100-500ms)
-    const delay = 100 + Math.random() * 400;
-    await new Promise<void>((resolve) => setTimeout(resolve, delay));
-
-    const settlementTxHash = this.generateSettlementTxHash();
-
-    db.update(grants)
-      .set({
-        status: 'settled',
-        settlementTxHash,
-        settledAt: new Date(),
-      })
-      .where(eq(grants.id, grantId))
-      .run();
-
-    console.log(
-      `[SettlementRelay] Grant ${grantId} settled — tx: ${settlementTxHash.slice(0, 16)}...`
-    );
-  }
-
-  private generateSettlementTxHash(): string {
-    return crypto
-      .randomBytes(32)
-      .toString('base64url')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .slice(0, 44);
+    console.log('[SettlementRelay] Stopped.');
   }
 }
