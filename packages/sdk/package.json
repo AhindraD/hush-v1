@@ -10,7 +10,6 @@
     "@solana/spl-token":                      "^0.4.9",
     "@magicblock-labs/ephemeral-rollups-sdk": "^0.2.5",
     "@umbra-privacy/sdk":                     "latest",
-    "@umbra-privacy/web-zk-prover":           "latest",
     "tweetnacl":                              "^1.0.3",
     "bs58":                                   "^6.0.0"
   }
