@@ -5,7 +5,7 @@ use crate::constants::*;
 
 #[derive(Accounts)]
 #[instruction(amount: u64, charity_wallet: Pubkey, memo_hash: [u8; 32])]
-pub struct AdviseGrant<'info> {
+pub struct AdviseGrantCtx<'info> {
     #[account(mut)]
     pub donor: Signer<'info>,
 
@@ -44,7 +44,7 @@ pub struct GrantAdvised {
 }
 
 pub fn handle(
-    ctx: Context<AdviseGrant>,
+    ctx: Context<AdviseGrantCtx>,
     amount: u64,
     charity_wallet: Pubkey,
     memo_hash: [u8; 32],

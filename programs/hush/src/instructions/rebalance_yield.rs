@@ -4,7 +4,7 @@ use crate::errors::*;
 use crate::constants::*;
 
 #[derive(Accounts)]
-pub struct RebalanceYield<'info> {
+pub struct RebalanceYieldCtx<'info> {
     pub authority: Signer<'info>,
 
     #[account(
@@ -15,20 +15,20 @@ pub struct RebalanceYield<'info> {
 }
 
 #[event]
-pub struct RebalanceYield {
+pub struct RebalanceYieldEvent {
     pub protocol: u8,
     pub amount: u64,
     pub timestamp: i64,
 }
 
-pub fn handle(ctx: Context<RebalanceYield>, protocol: u8, amount: u64) -> Result<()> {
+pub fn handle(ctx: Context<RebalanceYieldCtx>, protocol: u8, amount: u64) -> Result<()> {
     require!(amount > 0, HushError::AmountZero);
     require!(
         ctx.accounts.authority.key() == ctx.accounts.vault.authority,
         HushError::UnauthorizedSettler
     );
 
-    emit!(RebalanceYield {
+    emit!(RebalanceYieldEvent {
         protocol,
         amount,
         timestamp: Clock::get()?.unix_timestamp,

@@ -9,7 +9,7 @@ use crate::constants::*;
 
 #[derive(Accounts)]
 #[instruction(amount: u64, stealth_pubkey: [u8; 32])]
-pub struct ShieldDeposit<'info> {
+pub struct ShieldDepositCtx<'info> {
     #[account(mut)]
     pub donor: Signer<'info>,
 
@@ -27,7 +27,7 @@ pub struct ShieldDeposit<'info> {
         seeds = [SEED_SHIELDED, stealth_pubkey.as_ref()],
         bump,
     )]
-    pub shielded_account: Account<'info, ShieldedAccount>,
+    pub shielded_account: Box<Account<'info, ShieldedAccount>>,
 
     pub usdc_mint: Account<'info, Mint>,
 
@@ -60,7 +60,7 @@ pub struct ShieldedDeposit {
 }
 
 pub fn handle(
-    ctx: Context<ShieldDeposit>,
+    ctx: Context<ShieldDepositCtx>,
     amount: u64,
     stealth_pubkey: [u8; 32],
     encrypted_random: [u8; 32],
@@ -68,7 +68,7 @@ pub fn handle(
     require!(amount > 0, HushError::AmountZero);
 
     let cpi_ctx = CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.token_program.key(),
         Transfer {
             from: ctx.accounts.donor_token_account.to_account_info(),
             to: ctx.accounts.vault_token_account.to_account_info(),

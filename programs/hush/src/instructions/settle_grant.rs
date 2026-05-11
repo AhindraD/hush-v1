@@ -9,7 +9,7 @@ use crate::constants::*;
 
 #[derive(Accounts)]
 #[instruction(grant_id: u64)]
-pub struct SettleGrant<'info> {
+pub struct SettleGrantCtx<'info> {
     #[account(mut)]
     pub settler: Signer<'info>,
 
@@ -29,6 +29,10 @@ pub struct SettleGrant<'info> {
 
     pub usdc_mint: Account<'info, Mint>,
 
+    /// CHECK: The destination wallet for the charity
+    #[account(address = grant_request.charity_wallet)]
+    pub charity_wallet: UncheckedAccount<'info>,
+
     #[account(
         mut,
         associated_token::mint = usdc_mint,
@@ -40,7 +44,7 @@ pub struct SettleGrant<'info> {
         init_if_needed,
         payer = settler,
         associated_token::mint = usdc_mint,
-        associated_token::authority = grant_request.charity_wallet,
+        associated_token::authority = charity_wallet,
     )]
     pub charity_token_account: Account<'info, TokenAccount>,
 
@@ -57,7 +61,7 @@ pub struct GrantSettled {
     pub tx_signature: [u8; 64],
 }
 
-pub fn handle(ctx: Context<SettleGrant>, grant_id: u64) -> Result<()> {
+pub fn handle(ctx: Context<SettleGrantCtx>, grant_id: u64) -> Result<()> {
     let caller = ctx.accounts.settler.key();
     let vault_authority = ctx.accounts.vault.authority;
     require!(
@@ -75,7 +79,7 @@ pub fn handle(ctx: Context<SettleGrant>, grant_id: u64) -> Result<()> {
     let signer_seeds = &[seeds];
 
     let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.token_program.key(),
         Transfer {
             from: ctx.accounts.vault_token_account.to_account_info(),
             to: ctx.accounts.charity_token_account.to_account_info(),
