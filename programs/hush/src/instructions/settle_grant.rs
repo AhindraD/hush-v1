@@ -28,7 +28,6 @@ pub struct SettleGrant<'info> {
         constraint = charity_token_account.mint == usdc_mint.key() @ ErrorCode::InvalidMint
     )]
     pub charity_token_account: InterfaceAccount<'info, TokenAccount>,
-    #[account(constraint = usdc_mint.key() == vault.usdc_mint @ ErrorCode::InvalidMint)]
     pub usdc_mint: InterfaceAccount<'info, anchor_spl::token_interface::Mint>,
     pub relayer: Signer<'info>,
     pub token_program: Interface<'info, TokenInterface>,

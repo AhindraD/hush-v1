@@ -23,7 +23,6 @@ pub struct ShieldDeposit<'info> {
         token::authority = depositor,
     )]
     pub depositor_token_account: InterfaceAccount<'info, TokenAccount>,
-    #[account(constraint = usdc_mint.key() == vault.usdc_mint @ ErrorCode::InvalidMint)]
     pub usdc_mint: InterfaceAccount<'info, anchor_spl::token_interface::Mint>,
     pub depositor: Signer<'info>,
     pub token_program: Interface<'info, TokenInterface>,
