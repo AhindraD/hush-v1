@@ -1,6 +1,6 @@
+use crate::states::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use crate::states::*;
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
@@ -15,7 +15,7 @@ pub struct InitializeVault<'info> {
     #[account(
         init,
         payer = authority,
-        seeds = [b"vault_token"],
+        seeds = [b"vault_token", vault.key().as_ref()],
         bump,
         token::mint = usdc_mint,
         token::authority = vault,
@@ -29,7 +29,11 @@ pub struct InitializeVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<InitializeVault>, yield_agent: Pubkey, settlement_escrow: Pubkey) -> Result<()> {
+pub fn handler(
+    ctx: Context<InitializeVault>,
+    yield_agent: Pubkey,
+    settlement_escrow: Pubkey,
+) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
     vault.authority = ctx.accounts.authority.key();
     vault.usdc_mint = ctx.accounts.usdc_mint.key();
