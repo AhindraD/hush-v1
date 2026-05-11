@@ -5,6 +5,7 @@ node_modules/
 
 **/test-ledger/*.json
 **/.brand-preview
+bfg.jar
 
 # Build outputs
 dist/
