@@ -24,7 +24,6 @@
     "lucide-react": "^0.525.0",
     "recharts": "^2.12.7",
     "bs58": "^6.0.0",
-    "@hush/types": "workspace:*",
     "@hush/sdk": "workspace:*"
   },
   "devDependencies": {
