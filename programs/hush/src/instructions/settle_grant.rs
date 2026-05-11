@@ -1,112 +1,65 @@
-use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{transfer, Mint, Token, TokenAccount, Transfer},
-};
+use crate::errors::ErrorCode;
 use crate::states::*;
-use crate::errors::*;
-use crate::constants::*;
+use anchor_lang::prelude::*;
+use anchor_spl::token_interface::{self, TokenAccount, TokenInterface, TransferChecked};
 
 #[derive(Accounts)]
-#[instruction(grant_id: u64)]
-pub struct SettleGrantCtx<'info> {
+pub struct SettleGrant<'info> {
     #[account(mut)]
-    pub settler: Signer<'info>,
-
+    pub vault: Account<'info, Vault>,
     #[account(
         mut,
-        seeds = [SEED_VAULT],
-        bump = vault.bump,
+        seeds = [b"vault_token", vault.key().as_ref()],
+        bump,
+        token::authority = vault,
+        token::mint = usdc_mint,
     )]
-    pub vault: Account<'info, HushVault>,
-
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
-        seeds = [SEED_GRANT, grant_request.donor.as_ref(), &grant_id.to_le_bytes()],
-        bump = grant_request.bump,
+        has_one = daf_account,
+        constraint = grant_request.status == GrantStatus::Pending @ ErrorCode::InvalidStatusTransition
     )]
     pub grant_request: Account<'info, GrantRequest>,
-
-    pub usdc_mint: Account<'info, Mint>,
-
-    /// CHECK: The destination wallet for the charity
-    #[account(address = grant_request.charity_wallet)]
-    pub charity_wallet: UncheckedAccount<'info>,
-
+    pub daf_account: Account<'info, DafAccount>,
     #[account(
         mut,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = vault,
+        constraint = charity_token_account.owner == grant_request.charity_wallet @ ErrorCode::Unauthorized,
+        constraint = charity_token_account.mint == usdc_mint.key() @ ErrorCode::InvalidMint
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
-
-    #[account(
-        init_if_needed,
-        payer = settler,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = charity_wallet,
-    )]
-    pub charity_token_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
+    pub charity_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_mint: InterfaceAccount<'info, anchor_spl::token_interface::Mint>,
+    pub relayer: Signer<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
-#[event]
-pub struct GrantSettled {
-    pub grant_id: u64,
-    pub charity_wallet: Pubkey,
-    pub amount: u64,
-    pub tx_signature: [u8; 64],
-}
+pub fn handler(ctx: Context<SettleGrant>, settlement_tx_hash: [u8; 32]) -> Result<()> {
+    let amount = ctx.accounts.grant_request.amount_usdc;
 
-pub fn handle(ctx: Context<SettleGrantCtx>, grant_id: u64) -> Result<()> {
-    let caller = ctx.accounts.settler.key();
-    let vault_authority = ctx.accounts.vault.authority;
-    require!(
-        caller == vault_authority,
-        HushError::UnauthorizedSettler
-    );
+    // Transfer USDC from vault to charity
+    let authority_key = ctx.accounts.vault.authority;
+    let seeds = &[b"vault", authority_key.as_ref(), &[ctx.accounts.vault.bump]];
+    let signer = &[&seeds[..]];
 
-    let grant = &mut ctx.accounts.grant_request;
-    require!(!grant.settled, HushError::GrantAlreadySettled);
-    require!(grant.grant_id == grant_id, HushError::GrantAlreadySettled);
+    let cpi_accounts = TransferChecked {
+        from: ctx.accounts.vault_token_account.to_account_info(),
+        to: ctx.accounts.charity_token_account.to_account_info(),
+        authority: ctx.accounts.vault.to_account_info(),
+        mint: ctx.accounts.usdc_mint.to_account_info(),
+    };
+    let cpi_ctx =
+        CpiContext::new_with_signer(ctx.accounts.token_program.key(), cpi_accounts, signer);
+    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
-    let amount = grant.amount;
-    let vault_bump = ctx.accounts.vault.bump;
-    let seeds: &[&[u8]] = &[SEED_VAULT, &[vault_bump]];
-    let signer_seeds = &[seeds];
-
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.key(),
-        Transfer {
-            from: ctx.accounts.vault_token_account.to_account_info(),
-            to: ctx.accounts.charity_token_account.to_account_info(),
-            authority: ctx.accounts.vault.to_account_info(),
-        },
-        signer_seeds,
-    );
-    transfer(cpi_ctx, amount)?;
-
-    grant.settled = true;
-
+    // Update grant request
+    let grant_request = &mut ctx.accounts.grant_request;
+    grant_request.status = GrantStatus::Settled;
+    grant_request.settlement_tx_hash = Some(settlement_tx_hash);
     let vault = &mut ctx.accounts.vault;
-    vault.total_granted = vault
-        .total_granted
-        .checked_add(amount)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-    vault.total_shielded = vault
-        .total_shielded
+    vault.total_tvl = vault
+        .total_tvl
         .checked_sub(amount)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-
-    emit!(GrantSettled {
-        grant_id,
-        charity_wallet: grant.charity_wallet,
-        amount,
-        tx_signature: [0u8; 64],
-    });
+        .ok_or(ErrorCode::MathUnderflow)?;
 
     Ok(())
 }
