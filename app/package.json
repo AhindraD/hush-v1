@@ -1,0 +1,39 @@
+{
+  "name": "@hush/app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "16.0.10",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@anchor-lang/core": "^1.0.2",
+    "gill": "^0.11.0",
+    "@solana/spl-token": "^0.4.9",
+    "@umbra-privacy/sdk": "latest",
+    "magic-router-sdk": "latest",
+    "@magicblock-labs/ephemeral-rollups-sdk": "latest",
+    "@tanstack/react-query": "^5.51.21",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.4.0",
+    "lucide-react": "^0.525.0",
+    "recharts": "^2.12.7",
+    "bs58": "^6.0.0",
+    "@hush/types": "workspace:*",
+    "@hush/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8",
+    "autoprefixer": "^10.0.1"
+  }
+}
