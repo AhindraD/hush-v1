@@ -96,8 +96,8 @@ export function TopBar({ accountId }: TopBarProps) {
           >
             <defs>
               <linearGradient id="shield-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop offset="0%"   stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#14b8a6" />
+                <stop offset="0%"   stopColor="#8E6E2E" />
+                <stop offset="100%" stopColor="#EED993" />
               </linearGradient>
             </defs>
             <path
@@ -111,7 +111,7 @@ export function TopBar({ accountId }: TopBarProps) {
           </svg>
         </div>
         <div className="flex flex-col">
-          <span className="font-display font-bold text-base leading-none text-[--text-primary] group-hover:text-hush-violet-300 transition-colors">
+          <span className="font-display font-bold text-base leading-none text-[--text-primary] group-hover:text-hush-gold-bright transition-colors">
             HUSH
           </span>
           <span className="text-[10px] leading-none text-[--text-muted] tracking-wider uppercase mt-0.5">
@@ -126,7 +126,7 @@ export function TopBar({ accountId }: TopBarProps) {
           href="https://x.com/Ahindra_D" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="p-2 rounded-lg text-[--text-muted] hover:text-hush-violet-300 hover:bg-hush-violet/10 transition-all"
+          className="p-2 rounded-lg text-[--text-muted] hover:text-hush-gold hover:bg-hush-gold-dim transition-all"
           title="X (formerly Twitter)"
         >
           <XLogo size={16} />

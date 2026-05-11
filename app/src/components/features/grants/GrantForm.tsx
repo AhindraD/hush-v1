@@ -111,8 +111,8 @@ export function GrantForm({ accountId }: GrantFormProps) {
   return (
     <div className="glass-card p-5">
       <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 rounded-lg bg-hush-teal/10">
-          <Gift size={15} className="text-hush-teal" />
+        <div className="p-2 rounded-lg bg-hush-gold-dim">
+          <Gift size={15} className="text-hush-gold" />
         </div>
         <div>
           <h3 className="font-display font-bold text-sm text-[--text-primary]">
@@ -132,7 +132,7 @@ export function GrantForm({ accountId }: GrantFormProps) {
             <button
               type="button"
               onClick={() => { setUseCustom((v) => !v); setSelectedCharity(null); }}
-              className="text-xs text-hush-violet-300 hover:text-hush-violet transition-colors"
+              className="text-xs text-hush-gold-bright hover:text-hush-gold transition-colors"
             >
               {useCustom ? '← Presets' : '+ Custom'}
             </button>
@@ -166,7 +166,7 @@ export function GrantForm({ accountId }: GrantFormProps) {
                     'flex items-start gap-2.5 p-3 rounded-lg border text-left',
                     'transition-all duration-150',
                     selectedCharity?.address === charity.address
-                      ? 'border-hush-teal/40 bg-hush-teal/10'
+                      ? 'border-hush-gold/40 bg-hush-gold-dim'
                       : 'border-[--border-subtle] bg-hush-bg-elevated hover:border-[--border-default]',
                   )}
                 >
@@ -175,7 +175,7 @@ export function GrantForm({ accountId }: GrantFormProps) {
                     <p className={cn(
                       'text-xs font-semibold truncate',
                       selectedCharity?.address === charity.address
-                        ? 'text-hush-teal'
+                        ? 'text-hush-gold'
                         : 'text-[--text-secondary]',
                     )}>
                       {charity.name}
@@ -217,7 +217,7 @@ export function GrantForm({ accountId }: GrantFormProps) {
                 className={cn(
                   'flex-1 py-1.5 rounded text-xs font-medium font-body border transition-all duration-150',
                   amount === n.toString()
-                    ? 'border-hush-teal/50 bg-hush-teal/15 text-hush-teal'
+                    ? 'border-hush-gold/50 bg-hush-gold-dim text-hush-gold'
                     : 'border-[--border-default] bg-hush-bg-elevated text-[--text-muted] hover:border-[--border-strong]',
                 )}
               >
@@ -256,7 +256,7 @@ export function GrantForm({ accountId }: GrantFormProps) {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="btn-teal w-full py-2.5 text-sm flex items-center justify-center gap-2"
+          className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2"
         >
           {mutation.isPending ? (
             <>
@@ -287,10 +287,10 @@ interface SuccessStateProps {
 function SuccessState({ grantId, charityName, amount, txHash, onReset }: SuccessStateProps) {
   return (
     <div className="glass-card p-5 space-y-4 animate-slide-up">
-      <div className="flex items-center gap-3 p-4 rounded-lg bg-hush-teal/10 border border-hush-teal/25">
-        <CheckCircle2 size={18} className="text-hush-teal shrink-0" />
+      <div className="flex items-center gap-3 p-4 rounded-lg bg-solana-green/10 border border-solana-green/25">
+        <CheckCircle2 size={18} className="text-solana-green shrink-0" />
         <div>
-          <p className="text-sm font-semibold text-hush-teal">
+          <p className="text-sm font-semibold text-solana-green">
             Grant of ${parseFloat(amount).toFixed(2)} USDC advised
           </p>
           <p className="text-xs text-[--text-muted] mt-0.5">to {charityName}</p>

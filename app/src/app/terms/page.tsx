@@ -17,7 +17,7 @@ export default function TermsPage() {
         </Link>
 
         <div className="flex items-center gap-4 mb-8">
-          <div className="p-3 rounded-2xl bg-hush-violet/10 text-hush-violet-300">
+          <div className="p-3 rounded-2xl bg-hush-gold-dim text-hush-gold">
             <Scale size={32} />
           </div>
           <div>
@@ -65,7 +65,7 @@ export default function TermsPage() {
 
         <footer className="mt-20 pt-8 border-t border-[--border-subtle] text-center">
           <p className="text-sm text-[--text-muted]">
-            Questions? Contact us on <a href="https://x.com/Ahindra_D" className="text-hush-violet-300 hover:underline">Twitter</a>.
+            Questions? Contact us on <a href="https://x.com/Ahindra_D" className="text-hush-gold hover:underline">Twitter</a>.
           </p>
         </footer>
       </main>

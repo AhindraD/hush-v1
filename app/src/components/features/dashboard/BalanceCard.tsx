@@ -26,20 +26,20 @@ export function BalanceCard({ account, isLoading }: BalanceCardProps) {
     : 0;
 
   return (
-    <div className="col-span-2 glass-card p-6 border-l-2 border-l-hush-violet/50 relative overflow-hidden group">
+    <div className="col-span-2 glass-card p-6 border-l-2 border-l-hush-gold/50 relative overflow-hidden group">
       {/* Background ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none transition-opacity duration-1000 group-hover:opacity-100"
         aria-hidden="true"
         style={{
-          background: 'radial-gradient(ellipse 60% 80% at 5% 50%, rgba(139,92,246,0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 60% 80% at 5% 50%, rgba(153,69,255,0.1) 0%, transparent 70%)',
         }}
       />
       <div
         className="absolute -inset-[100%] pointer-events-none opacity-20 animate-pulse duration-[4000ms]"
         aria-hidden="true"
         style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(20,184,166,0.08) 0%, transparent 40%)',
+          background: 'radial-gradient(circle at 50% 50%, rgba(20,241,149,0.08) 0%, transparent 40%)',
         }}
       />
 
@@ -47,8 +47,8 @@ export function BalanceCard({ account, isLoading }: BalanceCardProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-hush-violet/10">
-              <ShieldCheck size={16} className="text-hush-violet-300" />
+            <div className="p-2 rounded-lg bg-hush-gold-dim">
+              <ShieldCheck size={16} className="text-hush-gold" />
             </div>
             <div>
               <p className="label-text">Shielded Balance</p>
@@ -59,9 +59,9 @@ export function BalanceCard({ account, isLoading }: BalanceCardProps) {
           </div>
 
           {/* PER indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-hush-teal/10 border border-hush-teal/20">
-            <Zap size={12} className="text-hush-teal" />
-            <span className="text-xs font-medium font-mono text-hush-teal">MagicBlock PER</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-solana-green/10 border border-solana-green/20">
+            <Zap size={12} className="text-solana-green" />
+            <span className="text-xs font-medium font-mono text-solana-green">MagicBlock PER</span>
           </div>
         </div>
 

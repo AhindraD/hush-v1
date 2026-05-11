@@ -5,27 +5,37 @@ interface StatCardProps {
   label:     string;
   value:     string | number;
   subtext?:  string;
-  color?:    'violet' | 'gold' | 'teal' | 'default';
+  color?:    'purple' | 'gold' | 'green' | 'default' | 'violet' | 'teal';
   icon?:     React.ReactNode;
   isLoading?: boolean;
   className?: string;
 }
 
-const colorMap = {
+const colorMap: Record<string, { icon: string; value: string; accent: string }> = {
+  purple: {
+    icon:    'bg-solana-purple/10 text-solana-purple',
+    value:   'text-solana-purple',
+    accent:  'border-l-solana-purple/40',
+  },
   violet: {
-    icon:    'bg-hush-violet/10 text-hush-violet-400',
-    value:   'text-hush-violet-300',
-    accent:  'border-l-hush-violet/40',
+    icon:    'bg-solana-purple/10 text-solana-purple',
+    value:   'text-solana-purple',
+    accent:  'border-l-solana-purple/40',
   },
   gold: {
     icon:    'bg-hush-gold/10 text-hush-gold',
     value:   'text-hush-gold',
     accent:  'border-l-hush-gold/40',
   },
+  green: {
+    icon:    'bg-solana-green/10 text-solana-green',
+    value:   'text-solana-green',
+    accent:  'border-l-solana-green/40',
+  },
   teal: {
-    icon:    'bg-hush-teal/10 text-hush-teal',
-    value:   'text-hush-teal',
-    accent:  'border-l-hush-teal/40',
+    icon:    'bg-solana-green/10 text-solana-green',
+    value:   'text-solana-green',
+    accent:  'border-l-solana-green/40',
   },
   default: {
     icon:    'bg-hush-bg-muted text-[--text-secondary]',
@@ -43,12 +53,12 @@ export function StatCard({
   isLoading = false,
   className,
 }: StatCardProps) {
-  const colors = colorMap[color];
+  const colors = colorMap[color] || colorMap.default;
 
   return (
     <div
       className={cn(
-        'glass-card p-5 border-l-2 transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-black/5',
+        'glass-card p-5 border-l-2 transition-all duration-500 hover:scale-[1.02] hover:shadow-glow-gold/10',
         colors.accent,
         className,
       )}

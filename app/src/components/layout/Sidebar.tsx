@@ -58,7 +58,7 @@ export function Sidebar({ accountId }: SidebarProps) {
     <aside className="flex flex-col w-60 min-h-screen bg-hush-bg-surface border-r border-hush-bg-border sticky top-0">
       {/* Logo area — spacer to match TopBar height */}
       <div className="h-16 border-b border-hush-bg-border flex items-center px-5">
-        <Link href="/" className="font-display font-bold text-lg text-hush-violet-400 tracking-tight hover:text-hush-violet-300 transition-colors">
+        <Link href="/" className="font-display font-bold text-lg text-hush-gold tracking-tight hover:text-hush-gold-bright transition-colors">
           HUSH
         </Link>
       </div>
@@ -77,7 +77,7 @@ export function Sidebar({ accountId }: SidebarProps) {
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg group',
                 'text-sm font-medium font-body transition-all duration-200',
                 isActive
-                  ? 'bg-hush-violet/15 text-hush-violet-300 shadow-sm'
+                  ? 'bg-hush-gold-dim text-hush-gold shadow-sm'
                   : 'text-[--text-secondary] hover:bg-hush-bg-elevated hover:text-[--text-primary] hover:translate-x-1',
               )}
             >
@@ -85,12 +85,12 @@ export function Sidebar({ accountId }: SidebarProps) {
                 size={16}
                 className={cn(
                   'shrink-0 transition-colors duration-200 group-hover:scale-110',
-                  isActive ? 'text-hush-violet' : 'text-[--text-muted] group-hover:text-hush-violet-300',
+                  isActive ? 'text-hush-gold' : 'text-[--text-muted] group-hover:text-hush-gold-bright',
                 )}
               />
               {label}
               {isActive && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-hush-violet animate-pulse" />
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-hush-gold animate-pulse" />
               )}
             </Link>
           );
@@ -104,7 +104,7 @@ export function Sidebar({ accountId }: SidebarProps) {
             href="https://x.com/Ahindra_D" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-hush-violet-300 hover:bg-hush-violet/10 transition-all hover:-translate-y-1"
+            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-hush-gold hover:bg-hush-gold-dim transition-all hover:-translate-y-1"
             title="X (formerly Twitter)"
           >
             <XLogo size={16} />
@@ -113,7 +113,7 @@ export function Sidebar({ accountId }: SidebarProps) {
             href="https://github.com/AhindraD/hush-v1" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-hush-teal hover:bg-hush-teal/10 transition-all hover:-translate-y-1"
+            className="p-2 rounded-lg bg-hush-bg-elevated text-[--text-muted] hover:text-solana-green hover:bg-solana-green/10 transition-all hover:-translate-y-1"
             title="GitHub"
           >
             <Github size={16} />
@@ -126,7 +126,7 @@ export function Sidebar({ accountId }: SidebarProps) {
             icon={<Wifi size={13} />}
             label="PER Status"
             value="Active"
-            color="teal"
+            color="green"
           />
 
           {/* AI Agent status */}
@@ -134,7 +134,7 @@ export function Sidebar({ accountId }: SidebarProps) {
             icon={<Bot size={13} />}
             label="AI Agent"
             value="Running"
-            color="violet"
+            color="gold"
           />
 
           {/* Solana network */}
@@ -152,20 +152,20 @@ interface StatusRowProps {
   icon:  React.ReactNode;
   label: string;
   value: string;
-  color: 'teal' | 'violet' | 'gold';
+  color: 'green' | 'gold' | 'gold-bright';
 }
 
 function StatusRow({ icon, label, value, color }: StatusRowProps) {
   const dotColor = {
-    teal:   'bg-hush-teal',
-    violet: 'bg-hush-violet',
+    green:  'bg-solana-green',
     gold:   'bg-hush-gold',
+    'gold-bright': 'bg-hush-gold-bright',
   }[color];
 
   const textColor = {
-    teal:   'text-hush-teal',
-    violet: 'text-hush-violet-300',
+    green:  'text-solana-green',
     gold:   'text-hush-gold',
+    'gold-bright': 'text-hush-gold-bright',
   }[color];
 
   return (

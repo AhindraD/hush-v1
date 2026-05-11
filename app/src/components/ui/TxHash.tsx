@@ -51,10 +51,10 @@ export function TxHash({
         type="button"
         onClick={handleCopy}
         className={cn(
-          'p-1 rounded transition-all duration-150',
+          'p-1 rounded transition-all duration-300',
           'text-[--text-muted] hover:text-[--text-secondary]',
-          'focus:outline-none focus-visible:ring-1 focus-visible:ring-hush-violet',
-          copied && 'text-hush-teal',
+          'focus:outline-none focus-visible:ring-1 focus-visible:ring-hush-gold',
+          copied && 'text-solana-green',
         )}
         aria-label="Copy transaction hash"
       >
@@ -65,7 +65,7 @@ export function TxHash({
         href={explorerUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-1 rounded text-[--text-muted] hover:text-hush-violet-300 transition-colors duration-150"
+        className="p-1 rounded text-[--text-muted] hover:text-hush-gold transition-colors duration-300"
         aria-label="View on Solana Explorer"
       >
         <ExternalLink size={13} />

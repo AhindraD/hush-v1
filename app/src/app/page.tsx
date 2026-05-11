@@ -84,7 +84,7 @@ function HeroSection() {
         aria-hidden="true"
         style={{
           background:
-            'radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%)',
+            'radial-gradient(ellipse, rgba(153,69,255,0.12) 0%, transparent 70%)',
           filter: 'blur(40px)',
         }}
       />
@@ -93,16 +93,16 @@ function HeroSection() {
         aria-hidden="true"
         style={{
           background:
-            'radial-gradient(ellipse, rgba(20,184,166,0.08) 0%, transparent 70%)',
+            'radial-gradient(ellipse, rgba(20,241,149,0.08) 0%, transparent 70%)',
           filter: 'blur(40px)',
         }}
       />
 
       <div className="relative max-w-4xl mx-auto text-center">
         {/* Eyebrow badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-hush-violet/30 bg-hush-violet/10 mb-8 animate-in fade-in slide-in-from-top-4 duration-1000 fill-mode-both">
-          <span className="w-1.5 h-1.5 rounded-full bg-hush-violet animate-pulse" />
-          <span className="text-xs font-medium font-body text-hush-violet-300">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-hush-gold/30 bg-hush-gold-dim mb-8 animate-in fade-in slide-in-from-top-4 duration-1000 fill-mode-both">
+          <span className="w-1.5 h-1.5 rounded-full bg-hush-gold animate-pulse" />
+          <span className="text-xs font-medium font-body text-hush-gold">
             Built on Solana · Umbra · MagicBlock
           </span>
         </div>
@@ -110,7 +110,7 @@ function HeroSection() {
         {/* Headline */}
         <h1 className="font-display font-bold text-5xl md:text-7xl leading-[1.05] tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100 fill-mode-both">
           Give generously.{' '}
-          <span className="gradient-text block md:inline">Stay private.</span>
+          <span className="gradient-text-gold block md:inline">Stay private.</span>
         </h1>
 
         {/* Subheading */}
@@ -143,7 +143,7 @@ function HeroSection() {
 
         {/* Trust note */}
         <p className="mt-6 text-xs text-[--text-muted] animate-in fade-in duration-1000 delay-500 fill-mode-both">
-          Non-custodial · Open source · Built by <a href="https://x.com/Ahindra_D" className="text-hush-violet-300 hover:underline" target="_blank" rel="noopener noreferrer">@Ahindra_D</a>
+          Non-custodial · Open source · Built by <a href="https://x.com/Ahindra_D" className="text-hush-gold hover:underline" target="_blank" rel="noopener noreferrer">@Ahindra_D</a>
         </p>
       </div>
     </section>
@@ -154,8 +154,8 @@ function HeroSection() {
 // Stats Bar
 // ────────────────────────────────────────────────────────────
 const STATS = [
-  { label: 'Total Shielded',   value: '$4.2M',  color: 'text-hush-violet-300' },
-  { label: 'Grants Advised',   value: '1,847',  color: 'text-hush-teal'       },
+  { label: 'Total Shielded',   value: '$4.2M',  color: 'text-hush-gold' },
+  { label: 'Grants Advised',   value: '1,847',  color: 'text-solana-green'    },
   { label: 'Avg. APY',         value: '9.4%',   color: 'text-hush-gold'       },
   { label: 'Unique Donors',    value: '312',    color: 'text-[--text-primary]' },
 ];
@@ -240,7 +240,7 @@ function FeaturesSection() {
           <p className="label-text mb-3">How HUSH Works</p>
           <h2 className="font-display font-bold text-3xl md:text-4xl text-[--text-primary]">
             Four layers of privacy,{' '}
-            <span className="gradient-text">one seamless experience</span>
+            <span className="gradient-text-gold">one seamless experience</span>
           </h2>
         </div>
 
@@ -266,8 +266,8 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon: Icon, title, description, tag, color, index }: FeatureCardProps) {
   const colorMap = {
-    violet: { icon: 'bg-hush-violet/10 text-hush-violet-300', tag: 'bg-hush-violet/10 text-hush-violet-300', border: 'hover:border-hush-violet/30' },
-    teal:   { icon: 'bg-hush-teal/10 text-hush-teal',         tag: 'bg-hush-teal/10 text-hush-teal',         border: 'hover:border-hush-teal/30'   },
+    violet: { icon: 'bg-hush-gold/10 text-hush-gold', tag: 'bg-hush-gold/10 text-hush-gold', border: 'hover:border-hush-gold/30' },
+    teal:   { icon: 'bg-solana-green/10 text-solana-green',   tag: 'bg-solana-green/10 text-solana-green',   border: 'hover:border-solana-green/30' },
     gold:   { icon: 'bg-hush-gold/10 text-hush-gold',         tag: 'bg-hush-gold/10 text-hush-gold',         border: 'hover:border-hush-gold/30'   },
   }[color];
 
@@ -302,13 +302,13 @@ const STACK_LAYERS = [
     layer: 'L1',
     name:  'Solana Mainnet',
     desc:  'Settlement layer · ZK proof anchoring · Final irreversibility',
-    color: 'border-l-hush-teal/60 text-hush-teal',
+    color: 'border-l-solana-green/60 text-solana-green',
   },
   {
     layer: 'L1.5',
     name:  'MagicBlock Ephemeral Rollup',
     desc:  'Private grant execution · <100ms finality · No mempool visibility',
-    color: 'border-l-hush-violet/60 text-hush-violet-300',
+    color: 'border-l-hush-gold/60 text-hush-gold',
   },
   {
     layer: 'SDK',
@@ -370,7 +370,7 @@ const STEPS = [
     step:  '01',
     title: 'Connect &amp; Deposit',
     desc:  'Connect your Phantom or Solflare wallet. USDC is routed to a stealth address — no on-chain link to your identity.',
-    color: 'text-hush-violet-300',
+    color: 'text-hush-gold',
   },
   {
     step:  '02',
@@ -382,7 +382,7 @@ const STEPS = [
     step:  '03',
     title: 'Advise a Grant',
     desc:  'Select a charity from the curated list or enter any wallet address. The grant executes privately inside MagicBlock PER.',
-    color: 'text-hush-teal',
+    color: 'text-solana-green',
   },
   {
     step:  '04',
@@ -432,9 +432,9 @@ function CtaSection() {
     <section className="py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
         <div
-          className="relative rounded-2xl p-10 overflow-hidden border border-hush-violet/20"
+          className="relative rounded-2xl p-10 overflow-hidden border border-hush-gold/20"
           style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(20,184,166,0.06) 100%)',
+            background: 'linear-gradient(135deg, rgba(153,69,255,0.1) 0%, rgba(20,241,149,0.06) 100%)',
           }}
         >
           {/* Glow */}
@@ -442,13 +442,13 @@ function CtaSection() {
             className="absolute inset-0 pointer-events-none"
             aria-hidden="true"
             style={{
-              background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,92,246,0.08) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(153,69,255,0.08) 0%, transparent 70%)',
             }}
           />
 
           <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-hush-violet/15 border border-hush-violet/30 flex items-center justify-center mx-auto mb-6 animate-float">
-              <ShieldCheck size={24} className="text-hush-violet-300" />
+            <div className="w-14 h-14 rounded-2xl bg-hush-gold/15 border border-hush-gold/30 flex items-center justify-center mx-auto mb-6 animate-float">
+              <ShieldCheck size={24} className="text-hush-gold" />
             </div>
 
             <h2 className="font-display font-bold text-3xl text-[--text-primary] mb-4">
@@ -495,10 +495,10 @@ function LandingFooter() {
         <div className="flex items-center gap-2">
           {/* Shield mini logo */}
           <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
-            <path d="M8 1.5L2 4v4c0 3.314 2.686 6 6 6s6-2.686 6-6V4L8 1.5z" stroke="#8b5cf6" strokeWidth="1.2" />
+            <path d="M8 1.5L2 4v4c0 3.314 2.686 6 6 6s6-2.686 6-6V4L8 1.5z" stroke="#CBB067" strokeWidth="1.2" />
           </svg>
           <span className="text-sm font-display font-bold text-[--text-primary]">HUSH</span>
-          <span className="text-xs text-[--text-muted]">· by <a href="https://x.com/Ahindra_D" className="hover:text-hush-violet-300 transition-colors" target="_blank" rel="noopener noreferrer">@Ahindra_D</a></span>
+          <span className="text-xs text-[--text-muted]">· by <a href="https://x.com/Ahindra_D" className="hover:text-hush-gold transition-colors" target="_blank" rel="noopener noreferrer">@Ahindra_D</a></span>
         </div>
 
         <div className="flex items-center gap-5">
