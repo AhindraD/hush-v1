@@ -13,15 +13,9 @@ importers:
       '@anchor-lang/core':
         specifier: ^1.0.2
         version: 1.0.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      '@coral-xyz/anchor':
-        specifier: 0.30.1
-        version: 0.30.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@hush/sdk':
         specifier: workspace:*
         version: link:../packages/sdk
-      '@hush/types':
-        specifier: workspace:*
-        version: link:../packages/types
       '@magicblock-labs/ephemeral-rollups-sdk':
         specifier: latest
         version: 0.13.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -35,8 +29,8 @@ importers:
         specifier: latest
         version: 4.0.0(@wallet-standard/core@1.1.1)(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@6.0.6)
       bs58:
-        specifier: ^4.0.1
-        version: 4.0.1
+        specifier: ^6.0.0
+        version: 6.0.0
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -140,27 +134,13 @@ packages:
   '@bufbuild/protobuf@2.12.0':
     resolution: {integrity: sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA==}
 
-  '@coral-xyz/anchor-errors@0.30.1':
-    resolution: {integrity: sha512-9Mkradf5yS5xiLWrl9WrpjqOrAV+/W2RQHDlbnAZBivoGpOs1ECjoDCkVk4aRG8ZdiFiB8zQEVlxf+8fKkmSfQ==}
-    engines: {node: '>=10'}
-
   '@coral-xyz/anchor-errors@0.31.1':
     resolution: {integrity: sha512-NhNEku4F3zzUSBtrYz84FzYWm48+9OvmT1Hhnwr6GnPQry2dsEqH/ti/7ASjjpoFTWRnPXrjAIT1qM6Isop+LQ==}
     engines: {node: '>=10'}
 
-  '@coral-xyz/anchor@0.30.1':
-    resolution: {integrity: sha512-gDXFoF5oHgpriXAaLpxyWBHdCs8Awgf/gLHIo6crv7Aqm937CNdY+x+6hoj7QR5vaJV7MxWSQ0NGFzL3kPbWEQ==}
-    engines: {node: '>=11'}
-
   '@coral-xyz/anchor@0.32.1':
     resolution: {integrity: sha512-zAyxFtfeje2FbMA1wzgcdVs7Hng/MijPKpRijoySPCicnvcTQs/+dnPZ/cR+LcXM9v9UYSyW81uRNYZtN5G4yg==}
     engines: {node: '>=17'}
-
-  '@coral-xyz/borsh@0.30.1':
-    resolution: {integrity: sha512-aaxswpPrCFKl8vZTbxLssA2RvwX2zmKLlRCIktJOwW+VpVwYtXRtlWiIP+c2pPRKneiTiWCN2GEMSH9j1zTlWQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      '@solana/web3.js': ^1.68.0
 
   '@coral-xyz/borsh@0.31.1':
     resolution: {integrity: sha512-9N8AU9F0ubriKfNE3g1WF0/4dtlGXoBN/hd1PvbNBamBNwRgHxH4P+o3Zt7rSEloW1HUs6LfZEchlx9fW7POYw==}
@@ -1414,10 +1394,6 @@ packages:
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
 
-  crypto-hash@1.3.0:
-    resolution: {integrity: sha512-lyAZ0EMyjDkVvz8WOeVnuCPvKVBXcMv1l5SVqO1yC7PzTwrD/pPje/BIRbWhMoPe436U+Y2nD7f5bFx0kt+Sbg==}
-    engines: {node: '>=8'}
-
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
     engines: {node: '>=4'}
@@ -1506,9 +1482,6 @@ packages:
 
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
-
-  dot-case@3.0.4:
-    resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -1742,9 +1715,6 @@ packages:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
 
-  lower-case@2.0.2:
-    resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
-
   lucide-react@0.525.0:
     resolution: {integrity: sha512-Tm1txJ2OkymCGkvwoHt33Y2JpN5xucVq1slHcgE6Lk0WjDfjgKWor5CdVER8U6DvcfMwh4M8XxmpTiyzfmfDYQ==}
     peerDependencies:
@@ -1802,9 +1772,6 @@ packages:
         optional: true
       sass:
         optional: true
-
-  no-case@3.0.4:
-    resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -2024,9 +1991,6 @@ packages:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
 
-  snake-case@3.0.4:
-    resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
-
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -2228,32 +2192,7 @@ snapshots:
 
   '@bufbuild/protobuf@2.12.0': {}
 
-  '@coral-xyz/anchor-errors@0.30.1': {}
-
   '@coral-xyz/anchor-errors@0.31.1': {}
-
-  '@coral-xyz/anchor@0.30.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
-    dependencies:
-      '@coral-xyz/anchor-errors': 0.30.1
-      '@coral-xyz/borsh': 0.30.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))
-      '@noble/hashes': 1.8.0
-      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      bn.js: 5.2.3
-      bs58: 4.0.1
-      buffer-layout: 1.2.2
-      camelcase: 6.3.0
-      cross-fetch: 3.2.0
-      crypto-hash: 1.3.0
-      eventemitter3: 4.0.7
-      pako: 2.1.0
-      snake-case: 3.0.4
-      superstruct: 0.15.5
-      toml: 3.0.0
-    transitivePeerDependencies:
-      - bufferutil
-      - encoding
-      - typescript
-      - utf-8-validate
 
   '@coral-xyz/anchor@0.32.1(bufferutil@4.1.0)(typescript@5.9.3)':
     dependencies:
@@ -2275,12 +2214,6 @@ snapshots:
       - encoding
       - typescript
       - utf-8-validate
-
-  '@coral-xyz/borsh@0.30.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))':
-    dependencies:
-      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      bn.js: 5.2.3
-      buffer-layout: 1.2.2
 
   '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3))':
     dependencies:
@@ -3824,8 +3757,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  crypto-hash@1.3.0: {}
-
   cssesc@3.0.0: {}
 
   csstype@3.2.3: {}
@@ -3899,11 +3830,6 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.2
       csstype: 3.2.3
-
-  dot-case@3.0.4:
-    dependencies:
-      no-case: 3.0.4
-      tslib: 2.8.1
 
   dunder-proto@1.0.1:
     dependencies:
@@ -4150,10 +4076,6 @@ snapshots:
     dependencies:
       js-tokens: 4.0.0
 
-  lower-case@2.0.2:
-    dependencies:
-      tslib: 2.8.1
-
   lucide-react@0.525.0(react@19.2.4):
     dependencies:
       react: 19.2.4
@@ -4213,11 +4135,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
-
-  no-case@3.0.4:
-    dependencies:
-      lower-case: 2.0.2
-      tslib: 2.8.1
 
   node-fetch@2.7.0:
     dependencies:
@@ -4458,11 +4375,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
     optional: true
-
-  snake-case@3.0.4:
-    dependencies:
-      dot-case: 3.0.4
-      tslib: 2.8.1
 
   source-map-js@1.2.1: {}
 
