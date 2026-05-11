@@ -15,8 +15,8 @@
  *  10. rebalance_yield   — sad path: non-authority caller → UnauthorizedSettler
  */
 
-import * as anchor from "@coral-xyz/anchor";
-import { Program, BN, AnchorError } from "@coral-xyz/anchor";
+import * as anchor from "@anchor-lang/core";
+import { Program, BN, AnchorError } from "@anchor-lang/core";
 import {
   Keypair,
   PublicKey,
@@ -433,6 +433,7 @@ describe("hush", () => {
           settler: authority.publicKey,
           vault: vaultPda,
           grantRequest: grantPda,
+          charityWallet: charity.publicKey,
           usdcMint,
           vaultTokenAccount: vaultAta,
           charityTokenAccount: charityAta,
@@ -485,6 +486,7 @@ describe("hush", () => {
             settler: authority.publicKey,
             vault: vaultPda,
             grantRequest: grantPda,
+            charityWallet: charity.publicKey,
             usdcMint,
             vaultTokenAccount: vaultAta,
             charityTokenAccount: charityAta,
@@ -529,6 +531,7 @@ describe("hush", () => {
             settler: nonAuthority.publicKey,
             vault: vaultPda,
             grantRequest: grantPda2,
+            charityWallet: charity.publicKey,
             usdcMint,
             vaultTokenAccount: vaultAta,
             charityTokenAccount: charityAta,

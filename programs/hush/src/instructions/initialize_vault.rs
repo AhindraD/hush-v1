@@ -4,7 +4,7 @@ use crate::errors::*;
 use crate::constants::*;
 
 #[derive(Accounts)]
-pub struct InitializeVault<'info> {
+pub struct InitializeVaultCtx<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
@@ -20,7 +20,7 @@ pub struct InitializeVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle(ctx: Context<InitializeVault>, fee_bps: u16) -> Result<()> {
+pub fn handle(ctx: Context<InitializeVaultCtx>, fee_bps: u16) -> Result<()> {
     require!(fee_bps <= 10_000, HushError::InvalidFeeConfig);
 
     let vault = &mut ctx.accounts.vault;
