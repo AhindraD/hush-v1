@@ -19,9 +19,9 @@ const DEMO_VIEWING_KEY =
   'vk_hush_1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890';
 
 const DECRYPT_STEPS = [
-  { icon: Key,      label: 'Verifying viewing key',       color: 'text-hush-violet-300' },
+  { icon: Key,      label: 'Verifying viewing key',       color: 'text-hush-gold-bright' },
   { icon: Database, label: 'Fetching encrypted records',  color: 'text-hush-gold'       },
-  { icon: Shield,   label: 'Generating ZK proof',         color: 'text-hush-teal'       },
+  { icon: Shield,   label: 'Generating ZK proof',         color: 'text-solana-green'     },
 ];
 
 export function ViewingKeyForm({
@@ -56,8 +56,8 @@ export function ViewingKeyForm({
     <div className="glass-card p-5">
       {/* Header */}
       <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 rounded-lg bg-hush-violet/10">
-          <Key size={15} className="text-hush-violet-300" />
+        <div className="p-2 rounded-lg bg-hush-gold-dim">
+          <Key size={15} className="text-hush-gold" />
         </div>
         <div>
           <h3 className="font-display font-bold text-sm text-[--text-primary]">
@@ -86,7 +86,7 @@ export function ViewingKeyForm({
               <button
                 type="button"
                 onClick={handleDemo}
-                className="flex items-center gap-1.5 text-xs text-hush-violet-300 hover:text-hush-violet transition-colors"
+                className="flex items-center gap-1.5 text-xs text-hush-gold-bright hover:text-hush-gold transition-colors"
               >
                 <Eye size={12} />
                 Autofill demo
@@ -130,7 +130,7 @@ export function ViewingKeyForm({
                     'flex-1 py-2 rounded-lg text-sm font-medium font-body border',
                     'transition-all duration-150',
                     taxYear === year
-                      ? 'border-hush-violet/50 bg-hush-violet/15 text-hush-violet-300'
+                      ? 'border-hush-gold/50 bg-hush-gold-dim text-hush-gold'
                       : 'border-[--border-default] bg-hush-bg-elevated text-[--text-muted] hover:border-[--border-strong]',
                   )}
                 >
@@ -190,7 +190,7 @@ function DecryptionPipeline() {
       {/* Progress bar */}
       <div className="mt-4 h-1 bg-hush-bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-hush-violet to-hush-teal rounded-full animate-[shimmer_1.6s_linear_infinite]"
+          className="h-full bg-gradient-to-r from-hush-gold-deep to-hush-gold rounded-full animate-[shimmer_1.6s_linear_infinite]"
           style={{
             backgroundSize: '200% 100%',
             width: '60%',

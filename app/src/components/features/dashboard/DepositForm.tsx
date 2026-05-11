@@ -35,8 +35,8 @@ export function DepositForm({ accountId }: DepositFormProps) {
   return (
     <div className="glass-card p-5">
       <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 rounded-lg bg-hush-violet/10">
-          <ShieldCheck size={15} className="text-hush-violet-300" />
+        <div className="p-2 rounded-lg bg-hush-gold-dim">
+          <ShieldCheck size={15} className="text-hush-gold" />
         </div>
         <div>
           <h3 className="font-display font-bold text-sm text-[--text-primary]">
@@ -101,7 +101,7 @@ export function DepositForm({ accountId }: DepositFormProps) {
                   'px-3 py-1.5 rounded-md text-xs font-medium font-body',
                   'border transition-all duration-150',
                   amount === n.toString()
-                    ? 'border-hush-violet/50 bg-hush-violet/15 text-hush-violet-300'
+                    ? 'border-hush-gold/50 bg-hush-gold-dim text-hush-gold'
                     : 'border-[--border-default] bg-hush-bg-elevated text-[--text-muted] hover:border-[--border-strong] hover:text-[--text-secondary]',
                 )}
               >
@@ -156,9 +156,9 @@ interface SuccessStateProps {
 function SuccessState({ txHash, stealthPubkey, amount, onReset }: SuccessStateProps) {
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-hush-teal/10 border border-hush-teal/20">
-        <CheckCircle2 size={15} className="text-hush-teal shrink-0" />
-        <p className="text-sm text-hush-teal font-medium">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-solana-green/10 border border-solana-green/20">
+        <CheckCircle2 size={15} className="text-solana-green shrink-0" />
+        <p className="text-sm text-solana-green font-medium">
           ${parseFloat(amount).toFixed(2)} USDC shielded successfully
         </p>
       </div>

@@ -39,8 +39,8 @@ export function GrantHistory({ grants, isLoading }: GrantHistoryProps) {
               className="py-4 flex items-start gap-4 border-b border-[--border-subtle] last:border-0"
             >
               {/* Left: charity initial circle */}
-              <div className="w-9 h-9 rounded-full bg-hush-teal/15 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-sm font-display font-bold text-hush-teal">
+              <div className="w-9 h-9 rounded-full bg-hush-gold-dim flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-sm font-display font-bold text-hush-gold">
                   {grant.charityName.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -67,7 +67,7 @@ export function GrantHistory({ grants, isLoading }: GrantHistoryProps) {
 
               {/* Right: amount + time */}
               <div className="shrink-0 text-right">
-                <p className="font-display font-bold text-sm text-hush-teal">
+                <p className="font-display font-bold text-sm text-hush-gold">
                   {formatUsd(grant.amount / 1_000_000)}
                 </p>
                 <p className="text-[10px] mono text-[--text-muted] mt-0.5">

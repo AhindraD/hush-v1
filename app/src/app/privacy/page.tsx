@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         </Link>
 
         <div className="flex items-center gap-4 mb-8">
-          <div className="p-3 rounded-2xl bg-hush-teal/10 text-hush-teal">
+          <div className="p-3 rounded-2xl bg-solana-green/10 text-solana-green">
             <Lock size={32} />
           </div>
           <div>

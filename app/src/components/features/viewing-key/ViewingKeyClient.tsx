@@ -32,25 +32,25 @@ export default function ViewingKeyClient({ accountId }: ViewingKeyClientProps) {
           icon={Key}
           title="Private Verification"
           body="Your viewing key cryptographically proves donation history without revealing your wallet address."
-          color="violet"
+          color="gold"
         />
         <ExplainerCard
           icon={ShieldCheck}
           title="ZK Proof"
           body="A zero-knowledge proof is generated and anchored on-chain, verifiable by any auditor."
-          color="teal"
+          color="green"
         />
         <ExplainerCard
           icon={FileText}
           title="IRS Compliant"
           body="Receipts satisfy IRC §170 charitable deduction documentation requirements."
-          color="gold"
+          color="purple"
         />
       </div>
 
       {/* Privacy notice */}
-      <div className="flex items-start gap-2 p-3.5 rounded-lg bg-hush-violet/8 border border-hush-violet/20 mb-6">
-        <AlertCircle size={14} className="text-hush-violet-300 mt-0.5 shrink-0" />
+      <div className="flex items-start gap-2 p-3.5 rounded-lg bg-hush-gold-dim border border-hush-gold/20 mb-6">
+        <AlertCircle size={14} className="text-hush-gold mt-0.5 shrink-0" />
         <p className="text-xs text-[--text-secondary]">
           Your viewing key is processed entirely in-browser and never transmitted to HUSH servers.
           An anonymized audit log entry is created to satisfy compliance requirements.
@@ -78,14 +78,14 @@ interface ExplainerCardProps {
   icon:  React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   body:  string;
-  color: 'violet' | 'teal' | 'gold';
+  color: 'purple' | 'green' | 'gold';
 }
 
 function ExplainerCard({ icon: Icon, title, body, color }: ExplainerCardProps) {
   const colors = {
-    violet: { icon: 'bg-hush-violet/10 text-hush-violet-300', border: 'border-l-hush-violet/30' },
-    teal:   { icon: 'bg-hush-teal/10 text-hush-teal',         border: 'border-l-hush-teal/30'   },
-    gold:   { icon: 'bg-hush-gold/10 text-hush-gold',         border: 'border-l-hush-gold/30'   },
+    purple: { icon: 'bg-solana-purple/10 text-solana-purple', border: 'border-l-solana-purple/30' },
+    green:  { icon: 'bg-solana-green/10 text-solana-green',   border: 'border-l-solana-green/30' },
+    gold:   { icon: 'bg-hush-gold-dim text-hush-gold',         border: 'border-l-hush-gold/30'   },
   }[color];
 
   return (

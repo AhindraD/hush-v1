@@ -55,7 +55,7 @@ export function PrivacyMask({
         className={cn(
           'p-1 rounded transition-colors duration-150',
           'text-[--text-muted] hover:text-[--text-secondary]',
-          'focus:outline-none focus-visible:ring-1 focus-visible:ring-hush-violet',
+          'focus:outline-none focus-visible:ring-1 focus-visible:ring-hush-gold',
         )}
         aria-label={masked ? 'Reveal value' : 'Hide value'}
       >

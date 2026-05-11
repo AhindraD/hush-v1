@@ -21,9 +21,9 @@ const statusConfig: Record<
 > = {
   settled: {
     label: 'Settled',
-    dot:   'bg-hush-teal',
-    bg:    'bg-hush-teal/10',
-    text:  'text-hush-teal',
+    dot:   'bg-solana-green',
+    bg:    'bg-solana-green/10',
+    text:  'text-solana-green',
   },
   pending: {
     label: 'Pending',
@@ -45,9 +45,9 @@ const statusConfig: Record<
   },
   shielded: {
     label: 'Shielded',
-    dot:   'bg-hush-violet animate-pulse',
-    bg:    'bg-hush-violet/10',
-    text:  'text-hush-violet-300',
+    dot:   'bg-hush-gold animate-pulse',
+    bg:    'bg-hush-gold-dim',
+    text:  'text-hush-gold',
   },
   confirmed: {
     label: 'Confirmed',
@@ -57,9 +57,9 @@ const statusConfig: Record<
   },
   active: {
     label: 'Active',
-    dot:   'bg-hush-teal animate-pulse',
-    bg:    'bg-hush-teal/10',
-    text:  'text-hush-teal',
+    dot:   'bg-solana-green animate-pulse',
+    bg:    'bg-solana-green/10',
+    text:  'text-solana-green',
   },
 };
 

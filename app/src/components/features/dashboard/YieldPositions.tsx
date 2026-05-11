@@ -113,14 +113,14 @@ export function YieldPositions({
                   </span>
                   <div className="h-1 bg-hush-bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-hush-violet to-hush-teal rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-solana-purple to-solana-green rounded-full transition-all duration-500"
                       style={{ width: `${allocationPct}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Accrued yield */}
-                <span className="text-sm font-mono text-hush-teal">
+                <span className="text-sm font-mono text-solana-green">
                   +{formatUsd(pos.accrued / 1_000_000)}
                 </span>
               </div>
@@ -135,12 +135,12 @@ export function YieldPositions({
 function ProtocolDot({ protocol }: { protocol: string }) {
   const colors: Record<string, string> = {
     'Kamino':    'bg-blue-400',
-    'Marginfi':  'bg-purple-400',
-    'Solend':    'bg-teal-400',
+    'Marginfi':  'bg-solana-purple',
+    'Solend':    'bg-solana-green',
     'Drift':     'bg-orange-400',
     'Mango':     'bg-yellow-400',
   };
-  const color = colors[protocol] ?? 'bg-hush-violet';
+  const color = colors[protocol] ?? 'bg-hush-gold';
   return <span className={cn('w-2 h-2 rounded-full shrink-0', color)} />;
 }
 

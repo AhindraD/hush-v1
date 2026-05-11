@@ -28,11 +28,11 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
   return (
     <div className="glass-card overflow-hidden animate-slide-up">
       {/* Receipt header */}
-      <div className="p-5 border-b border-[--border-subtle] bg-gradient-to-r from-hush-violet/5 to-hush-teal/5">
+      <div className="p-5 border-b border-[--border-subtle] solana-subtle">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-hush-violet/15">
-              <Receipt size={18} className="text-hush-violet-300" />
+            <div className="p-2.5 rounded-xl bg-hush-gold-dim">
+              <Receipt size={18} className="text-hush-gold" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -62,7 +62,7 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
         {/* ZK Receipt ID */}
         <div className="p-3 rounded-lg bg-hush-bg-elevated border border-[--border-subtle]">
           <div className="flex items-center gap-2 mb-1">
-            <Shield size={12} className="text-hush-violet-300" />
+            <Shield size={12} className="text-hush-gold-bright" />
             <span className="label-text">ZK Proof CID</span>
           </div>
           <p className="mono text-xs text-[--text-secondary] break-all">{receipt.zkProofCid}</p>
@@ -75,12 +75,12 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
             <SummaryCell
               label="Total Deposited"
               value={formatUsd(receipt.totalDeposits / 1_000_000)}
-              color="violet"
+              color="gold-bright"
             />
             <SummaryCell
               label="Total Granted"
               value={formatUsd(receipt.totalGrants / 1_000_000)}
-              color="teal"
+              color="green"
             />
             <SummaryCell
               label="Yield Earned"
@@ -145,7 +145,7 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-mono text-sm font-medium text-hush-teal">
+                    <span className="font-mono text-sm font-medium text-hush-gold">
                       {formatUsd(grant.amount / 1_000_000)}
                     </span>
                     <Badge status={grant.status} size="sm" />
@@ -158,7 +158,7 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
 
         {/* Footer */}
         <div className="flex items-center gap-2 pt-2 border-t border-[--border-subtle]">
-          <CheckCircle2 size={12} className="text-hush-teal" />
+          <CheckCircle2 size={12} className="text-solana-green" />
           <p className="text-xs text-[--text-muted]">
             ZK proof anchored on Solana · Receipt ID: <span className="mono">{receipt.receiptId.slice(0, 12)}…</span>
           </p>
@@ -171,14 +171,14 @@ export function TaxReceipt({ receipt }: TaxReceiptProps) {
 interface SummaryCellProps {
   label: string;
   value: string;
-  color: 'violet' | 'gold' | 'teal';
+  color: 'gold-bright' | 'gold' | 'green';
 }
 
 function SummaryCell({ label, value, color }: SummaryCellProps) {
   const valueColor = {
-    violet: 'text-hush-violet-300',
+    'gold-bright': 'text-hush-gold-bright',
     gold:   'text-hush-gold',
-    teal:   'text-hush-teal',
+    green:   'text-solana-green',
   }[color];
 
   return (
