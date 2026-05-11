@@ -9,7 +9,7 @@
     "start": "pnpm --filter app start",
     "anchor:build": "anchor build",
     "anchor:test": "anchor test",
-    "test:ui": "pnpm --filter app test",
+    "test:ui": "pnpm --filter app build",
     "test": "pnpm anchor:test && pnpm test:ui"
   },
   "keywords": [],

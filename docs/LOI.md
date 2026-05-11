@@ -14,7 +14,7 @@ HUSH is a confidential philanthropy engine built on Solana that enables donors t
 - **Immersive UX:** A custom Three.js WebGL engine powers the dashboard, turning abstract financial data into interactive, fluid visualizations that emphasize the "liquid" nature of the protocol.
 
 ## Technology Stack
-- **Blockchain:** Solana (Anchor 1.0.2, Edition 2024)
+- **Blockchain:** Solana (Anchor 1.0.2, Edition 2021)
 - **Privacy Layer:** MagicBlock Ephemeral Rollups & Umbra SDK
 - **Frontend:** Next.js 16, Three.js, Gill SDK, Tailwind CSS 4
 - **Testing:** Gill SDK (Declarative testing) & @solana/kit (Edge cases)

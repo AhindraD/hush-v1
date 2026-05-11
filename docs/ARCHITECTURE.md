@@ -37,7 +37,7 @@ flowchart TB
 ## 2. Technical Stack Detail
 
 ### Core Program (Rust/Anchor 1.0.2)
-- **Edition 2024**: Leverages the latest Rust features for safety and clarity.
+- **Edition 2021**: Uses stable Rust features compatible with the current workspace toolchain.
 - **Anchor 1.0.2**: Utilizes modern IDL building and account resolution patterns.
 - **MagicBlock Integration**: Native support for ephemeral state transitions and private rollups.
 
@@ -56,7 +56,7 @@ flowchart TB
 hush-v2/
 ├── app/                        # Next.js 16, Three.js, Gill SDK
 ├── programs/
-│   └── hush/                   # Anchor 1.0.2 (Edition 2024)
+│   └── hush/                   # Anchor 1.0.2 (Edition 2021)
 │       ├── src/
 │       │   ├── states/         # daf_account.rs, vault.rs
 │       │   ├── instructions/   # shield_deposit.rs, advise_grant.rs, rebalance_yield.rs

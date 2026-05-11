@@ -12,4 +12,10 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Invalid status transition")]
     InvalidStatusTransition,
+    #[msg("Invalid token mint")]
+    InvalidMint,
+    #[msg("Invalid amount")]
+    InvalidAmount,
+    #[msg("DAF account is inactive")]
+    InactiveDafAccount,
 }

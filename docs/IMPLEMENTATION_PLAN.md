@@ -1,7 +1,7 @@
 # Implementation Plan: Hush Protocol (v2)
 
 ## Objective
-Rebuild the Hush Protocol (a confidential Donor-Advised Fund) from scratch, utilizing the latest Solana ecosystem tools: Next.js 15, Solana Gill SDK, Anchor ~0.30, Umbra SDK, and MagicBlock Ephemeral Rollups. The project will use a strict monorepo structure, prioritize MagicBlock native state storage (no local database), and use on-chain automation for the AI Yield Agent.
+Rebuild the Hush Protocol (a confidential Donor-Advised Fund) from scratch, utilizing the latest Solana ecosystem tools: Next.js 16, Solana Gill SDK, Anchor 1.0.2 (`@coral-xyz/anchor` 0.32.1), Umbra SDK, and MagicBlock Ephemeral Rollups. The project will use a strict monorepo structure, prioritize MagicBlock native state storage (no local database), and use on-chain automation for the AI Yield Agent.
 
 ## Scope & Impact
 - **Monorepo Setup:** `pnpm` workspaces for `app/` (Next.js), `programs/hush` (Anchor), and `packages/`.
@@ -12,8 +12,8 @@ Rebuild the Hush Protocol (a confidential Donor-Advised Fund) from scratch, util
 
 ## Phase 1: Workspace & Architecture Setup
 1. Initialize a `pnpm` monorepo.
-2. Scaffold `app` with Next.js 15.
-3. Scaffold `programs/hush` using `anchor init` (v0.30).
+2. Scaffold `app` with Next.js 16.
+3. Scaffold `programs/hush` using `anchor init` (Anchor 1.0.2 toolchain).
 4. Configure `@gillsdk/react` and `@solana/kit` in the frontend.
 
 ## Phase 2: Modular On-Chain Program
