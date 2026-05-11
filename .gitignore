@@ -3,6 +3,9 @@ node_modules/
 .pnp
 .pnp.js
 
+**/test-ledger/*.json
+**/.brand-preview
+
 # Build outputs
 dist/
 .next/
