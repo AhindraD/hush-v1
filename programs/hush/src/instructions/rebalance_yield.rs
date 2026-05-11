@@ -1,38 +1,24 @@
 use anchor_lang::prelude::*;
 use crate::states::*;
-use crate::errors::*;
-use crate::constants::*;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
-pub struct RebalanceYieldCtx<'info> {
-    pub authority: Signer<'info>,
-
-    #[account(
-        seeds = [SEED_VAULT],
-        bump = vault.bump,
-    )]
-    pub vault: Account<'info, HushVault>,
+pub struct RebalanceYield<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub daf_account: Account<'info, DafAccount>,
+    pub yield_agent: Signer<'info>,
 }
 
-#[event]
-pub struct RebalanceYieldEvent {
-    pub protocol: u8,
-    pub amount: u64,
-    pub timestamp: i64,
-}
+pub fn handler(ctx: Context<RebalanceYield>, yield_amount: u64) -> Result<()> {
+    require_keys_eq!(ctx.accounts.yield_agent.key(), ctx.accounts.vault.yield_agent, ErrorCode::Unauthorized);
 
-pub fn handle(ctx: Context<RebalanceYieldCtx>, protocol: u8, amount: u64) -> Result<()> {
-    require!(amount > 0, HushError::AmountZero);
-    require!(
-        ctx.accounts.authority.key() == ctx.accounts.vault.authority,
-        HushError::UnauthorizedSettler
-    );
-
-    emit!(RebalanceYieldEvent {
-        protocol,
-        amount,
-        timestamp: Clock::get()?.unix_timestamp,
-    });
+    let daf_account = &mut ctx.accounts.daf_account;
+    
+    // Add yield to balance and total accrued using checked math
+    daf_account.balance_usdc = daf_account.balance_usdc.checked_add(yield_amount).ok_or(ErrorCode::MathOverflow)?;
+    daf_account.total_yield_accrued = daf_account.total_yield_accrued.checked_add(yield_amount).ok_or(ErrorCode::MathOverflow)?;
 
     Ok(())
 }

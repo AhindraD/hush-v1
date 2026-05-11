@@ -1,106 +1,52 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{transfer, Mint, Token, TokenAccount, Transfer},
-};
+use anchor_spl::token_interface::{self, TokenAccount, TokenInterface, TransferChecked};
 use crate::states::*;
-use crate::errors::*;
-use crate::constants::*;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(amount: u64, stealth_pubkey: [u8; 32])]
-pub struct ShieldDepositCtx<'info> {
+pub struct ShieldDeposit<'info> {
     #[account(mut)]
-    pub donor: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [SEED_VAULT],
-        bump = vault.bump,
-    )]
-    pub vault: Account<'info, HushVault>,
-
-    #[account(
-        init_if_needed,
-        payer = donor,
-        space = 8 + ShieldedAccount::INIT_SPACE,
-        seeds = [SEED_SHIELDED, stealth_pubkey.as_ref()],
-        bump,
-    )]
-    pub shielded_account: Box<Account<'info, ShieldedAccount>>,
-
-    pub usdc_mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = donor,
-    )]
-    pub donor_token_account: Account<'info, TokenAccount>,
-
-    #[account(
-        init_if_needed,
-        payer = donor,
-        associated_token::mint = usdc_mint,
-        associated_token::authority = vault,
-    )]
-    pub vault_token_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub daf_account: Account<'info, DafAccount>,
+    #[account(mut)]
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub depositor_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub usdc_mint: InterfaceAccount<'info, anchor_spl::token_interface::Mint>,
+    pub depositor: Signer<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
-#[event]
-pub struct ShieldedDeposit {
-    pub stealth_pubkey: [u8; 32],
-    pub amount: u64,
-    pub encrypted_random: [u8; 32],
-    pub timestamp: i64,
-}
+pub fn handler(ctx: Context<ShieldDeposit>, amount: u64, stealth_pubkey: [u8; 32]) -> Result<()> {
+    // Transfer USDC to vault using transfer_checked for better safety
+    let cpi_accounts = TransferChecked {
+        from: ctx.accounts.depositor_token_account.to_account_info(),
+        to: ctx.accounts.vault_token_account.to_account_info(),
+        authority: ctx.accounts.depositor.to_account_info(),
+        mint: ctx.accounts.usdc_mint.to_account_info(),
+    };
+    let cpi_ctx = CpiContext::new(ctx.accounts.token_program.key(), cpi_accounts);
+    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.usdc_mint.decimals)?;
 
-pub fn handle(
-    ctx: Context<ShieldDepositCtx>,
-    amount: u64,
-    stealth_pubkey: [u8; 32],
-    encrypted_random: [u8; 32],
-) -> Result<()> {
-    require!(amount > 0, HushError::AmountZero);
+    // Update DAF account using checked math
+    let daf_account = &mut ctx.accounts.daf_account;
+    daf_account.balance_usdc = daf_account.balance_usdc.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
+    daf_account.total_deposited = daf_account.total_deposited.checked_add(amount).ok_or(ErrorCode::MathOverflow)?;
 
-    let cpi_ctx = CpiContext::new(
-        ctx.accounts.token_program.key(),
-        Transfer {
-            from: ctx.accounts.donor_token_account.to_account_info(),
-            to: ctx.accounts.vault_token_account.to_account_info(),
-            authority: ctx.accounts.donor.to_account_info(),
-        },
-    );
-    transfer(cpi_ctx, amount)?;
-
-    let shielded = &mut ctx.accounts.shielded_account;
-    shielded.donor_stealth = stealth_pubkey;
-    shielded.shielded_balance = shielded
-        .shielded_balance
-        .checked_add(amount)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-    shielded.deposit_count = shielded
-        .deposit_count
-        .checked_add(1)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-    shielded.bump = ctx.bumps.shielded_account;
-
-    let vault = &mut ctx.accounts.vault;
-    vault.total_shielded = vault
-        .total_shielded
-        .checked_add(amount)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-
-    emit!(ShieldedDeposit {
-        stealth_pubkey,
+    // Emit event for MagicBlock PER
+    emit!(ShieldedDepositEvent {
+        daf_account: daf_account.key(),
         amount,
-        encrypted_random,
-        timestamp: Clock::get()?.unix_timestamp,
+        stealth_pubkey,
     });
 
     Ok(())
+}
+
+#[event]
+pub struct ShieldedDepositEvent {
+    pub daf_account: Pubkey,
+    pub amount: u64,
+    pub stealth_pubkey: [u8; 32],
 }

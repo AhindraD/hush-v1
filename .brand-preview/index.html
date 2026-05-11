@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUSH v2 — Royal Solaris Aurum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono&display=swap');
+        
+        body { background: #020202; color: #fff; font-family: 'Inter', sans-serif; }
+        .palette-card { 
+            border: 1px solid rgba(255,255,255,0.03); 
+            border-radius: 20px; 
+            overflow: hidden; 
+            background: #050505; 
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .palette-card:hover { 
+            transform: translateY(-12px); 
+            border-color: rgba(191,149,63,0.4); 
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.8);
+        }
+        .royal-bg { background: radial-gradient(circle at top right, #0a0a0c 0%, #020202 100%); }
+        .gold-metallic { 
+            background: linear-gradient(135deg, #8E6E2E 0%, #CBB067 25%, #EED993 50%, #CBB067 75%, #8E6E2E 100%); 
+        }
+        .solana-subtle { 
+            background: linear-gradient(90deg, rgba(153,69,255,0.15) 0%, rgba(20,241,149,0.15) 100%); 
+        }
+        .serif { font-family: 'Cormorant Garamond', serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="min-h-screen p-12 royal-bg">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-16">
+            <h1 class="text-5xl font-light mb-4 tracking-tighter serif">HUSH v2 — <span class="text-transparent bg-clip-text gold-metallic">Royal Solaris Aurum</span></h1>
+            <p class="text-zinc-500 font-light tracking-widest uppercase text-xs">Variations on Candidate 3: Deep Obsidian · Metallic Gold · Solana Soul</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <!-- Variation 1: Obsidian Throne -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-transparent bg-clip-text gold-metallic font-bold serif text-xl italic">1. Obsidian Throne</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Pure Royal</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#020202] border border-white/10 flex items-center px-4 text-[10px] text-zinc-500">OBSIDIAN_BG #020202</div>
+                    <div class="h-12 w-full rounded gold-metallic flex items-center px-4 text-[10px] text-black font-black uppercase tracking-widest">TRUE_GOLD</div>
+                    <div class="h-12 w-full rounded bg-gradient-to-r from-[#9945FF] to-[#14F195] opacity-20 flex items-center px-4 text-[10px] text-white/50">SOLANA_CORE</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-black border border-white/5 relative overflow-hidden">
+                    <div class="absolute inset-0 solana-subtle"></div>
+                    <div class="relative">
+                        <div class="text-[9px] text-zinc-600 mb-3 tracking-[0.2em] font-medium">SHIELDED TREASURY</div>
+                        <div class="text-2xl font-light mb-4 tracking-tight">2,500,000.00 <span class="text-transparent bg-clip-text gold-metallic serif italic">USDC</span></div>
+                        <div class="flex justify-between items-center pt-4 border-t border-white/5">
+                            <div class="text-[10px] text-zinc-500 mono uppercase">Agent Active</div>
+                            <div class="text-sm font-bold text-[#14F195]">+9.42% APY</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variation 2: Gilded Void -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-[#EED993] font-bold serif text-xl italic">2. Gilded Void</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Minimal Gold</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#000] border border-[#EED993]/20 flex items-center px-4 text-[10px] text-zinc-500">VOID_BG #000</div>
+                    <div class="h-12 w-full rounded bg-[#EED993] flex items-center px-4 text-[10px] text-black font-black uppercase tracking-widest">SOFT_GOLD</div>
+                    <div class="h-12 w-full rounded bg-[#9945FF] opacity-10 flex items-center px-4 text-[10px] text-white/50">SOLANA_PURPLE</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-[#030303] border border-white/5">
+                    <div class="text-[9px] text-zinc-600 mb-3 tracking-[0.2em]">VAULT ACCESS</div>
+                    <div class="text-2xl font-light mb-4">2,500,000.00 <span class="text-[#EED993] serif">USDC</span></div>
+                    <div class="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                        <div class="h-full solana-gradient w-3/4" style="background: linear-gradient(90deg, #9945FF, #14F195);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variation 3: Monarch Eclipse -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-white font-bold serif text-xl italic">3. Monarch Eclipse</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Deep Contrast</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#050505] border border-white/10 flex items-center px-4 text-[10px] text-zinc-500">ONYX_BG #050505</div>
+                    <div class="h-12 w-full rounded gold-metallic flex items-center px-4 text-[10px] text-black font-black uppercase tracking-widest">ACCENT_GOLD</div>
+                    <div class="h-12 w-full rounded bg-[#14F195] opacity-20 flex items-center px-4 text-[10px] text-[#14F195]">SOLANA_MINT</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-black border-l-4 border-[#CBB067]">
+                    <div class="flex justify-between mb-4">
+                         <div class="text-[9px] text-zinc-600 tracking-[0.2em]">COLLECTIVE YIELD</div>
+                         <div class="text-[10px] text-[#14F195] font-bold">LIVE</div>
+                    </div>
+                    <div class="text-2xl font-medium tracking-tighter">2,500,000.00 <span class="text-[#CBB067] serif">USDC</span></div>
+                </div>
+            </div>
+
+            <!-- Variation 4: Imperial Pulse -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-transparent bg-clip-text gold-metallic font-bold serif text-xl italic">4. Imperial Pulse</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Glow Effect</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#080808] border border-white/10 flex items-center px-4 text-[10px] text-zinc-500">RAVEN_BG #080808</div>
+                    <div class="h-12 w-full rounded bg-[#CBB067] shadow-[0_0_20px_rgba(203,176,103,0.3)] flex items-center px-4 text-[10px] text-black font-black uppercase tracking-widest">GLOW_GOLD</div>
+                    <div class="h-12 w-full rounded bg-gradient-to-r from-[#9945FF] to-[#14F195] flex items-center px-4 text-[10px] text-black font-bold">SOLANA_CORE</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-black border border-[#CBB067]/10">
+                    <div class="text-[9px] text-[#9945FF] mb-3 tracking-[0.2em] font-bold">TRANSACTION SIGNED</div>
+                    <div class="flex items-center gap-3">
+                        <div class="h-2 w-2 rounded-full bg-[#14F195] animate-pulse"></div>
+                        <div class="text-xl font-mono text-zinc-300">0x...7E3D</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variation 5: Sterling Aurum -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-white font-bold serif text-xl italic">5. Sterling Aurum</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Muted Premium</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#0a0a0a] border border-white/10 flex items-center px-4 text-[10px] text-zinc-500">SLATE_BG #0A0A0A</div>
+                    <div class="h-12 w-full rounded bg-[#8E6E2E] flex items-center px-4 text-[10px] text-white font-black uppercase tracking-widest">MATTE_GOLD</div>
+                    <div class="h-12 w-full rounded bg-white flex items-center px-4 text-[10px] text-black font-bold">PRIMARY_TEXT</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-[#050505] border border-white/5">
+                    <div class="text-[9px] text-zinc-600 mb-3 tracking-[0.2em]">GRANT ADVISORY</div>
+                    <div class="text-2xl font-light mb-1 text-white italic serif">Silent Giving</div>
+                    <div class="text-sm text-[#8E6E2E] mono">Processing Confirmed</div>
+                </div>
+            </div>
+
+            <!-- Variation 6: Sovereign Abyss -->
+            <div class="palette-card p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-transparent bg-clip-text gold-metallic font-bold serif text-xl italic">6. Sovereign Abyss</h2>
+                    <span class="text-[9px] px-2 py-0.5 border border-white/10 text-zinc-400 rounded-full tracking-widest uppercase">Deep Space</span>
+                </div>
+                <div class="space-y-3 mb-8">
+                    <div class="h-12 w-full rounded bg-[#020202] border border-white/10 flex items-center px-4 text-[10px] text-zinc-500">VOID_BG #020202</div>
+                    <div class="h-12 w-full rounded gold-metallic flex items-center px-4 text-[10px] text-black font-black uppercase tracking-widest">ROYAL_GOLD</div>
+                    <div class="h-12 w-full rounded bg-white/5 border border-white/10 flex items-center px-4 text-[10px]">ELEVATED_SURFACE</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-black border border-white/10 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]">
+                    <div class="flex justify-between items-center mb-6">
+                         <div class="h-8 w-8 rounded bg-zinc-900 border border-white/10"></div>
+                         <div class="h-6 w-16 rounded bg-zinc-900"></div>
+                    </div>
+                    <div class="h-4 w-3/4 bg-zinc-900 rounded mb-2"></div>
+                    <div class="h-4 w-1/2 bg-zinc-900 rounded opacity-50"></div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="mt-20 text-zinc-600 text-[10px] font-mono tracking-[0.4em] uppercase text-center">
+            [ Select 1-6 ] or [ Vary N ]
+        </footer>
+    </div>
+</body>
+</html>
