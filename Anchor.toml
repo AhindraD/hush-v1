@@ -9,7 +9,7 @@ skip-lint = false
 hush = "9654iuLbWfpABAr2cyQBDVbAeKWeQyzwrfmv3aEi5XnP"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
